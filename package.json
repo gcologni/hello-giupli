@@ -1,0 +1,9 @@
+{
+  "name": "hello-giupli",
+  "private": true,
+  "description": "Inglese per principianti, 10 minuti al giorno.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "python3 -m http.server 8000"
+  }
+}
