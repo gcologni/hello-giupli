@@ -157,7 +157,7 @@
     });
     html += '</div>';
     const words = introduced().length;
-    app.innerHTML = `<div class="wrap screen">
+    app.innerHTML = `<div class="wrap screen home"><aside class="side">
       <h1 class="hello">Hello, <span>Babi!</span></h1>
       <div class="mascots"><div class="mascot" aria-hidden="true">🐰</div><div class="bubble">${bubble}</div></div>
       ${finished ? '' : `<button class="btn go block" id="play">${first ? 'Iniziamo!' : `Gioca la lezione ${nl.n}`}</button>`}
@@ -166,8 +166,8 @@
         <div class="counter"><b>${Object.keys(S.done).length}</b><span>lezioni</span></div>
         <div class="counter"><b>${words}</b><span>parole</span></div>
         <div class="counter"><b>${S.stickers}</b><span>figurine</span></div>
-      </div>
-      ${html}
+      </div></aside>
+      <section class="map" aria-label="Percorso delle lezioni">${html}</section>
     </div>${tabbar()}`;
     bindTabs();
     const p = $('#play'); if (p) p.addEventListener('click', () => startLesson(nl));
@@ -180,7 +180,7 @@
     const cells = KIDS.STICKERS.map((s, i) => i < S.stickers
       ? `<div class="sticker" aria-label="Figurina ${i + 1}">${s}</div>`
       : `<div class="sticker off" aria-label="Figurina da vincere">?</div>`).join('');
-    app.innerHTML = `<div class="wrap screen">
+    app.innerHTML = `<div class="wrap screen album-screen">
       <h1 class="hello">Le mie <span>figurine</span></h1>
       <p class="lead">Ogni lezione nuova finita ti regala una figurina. Ne hai ${S.stickers} su ${KIDS.STICKERS.length}!</p>
       <div class="album">${cells}</div>
@@ -198,7 +198,7 @@
           <div class="w"><b lang="en">${esc(it.en)}</b><span>${esc(it.it)}</span>${carrotsHtml(S.cards[it.id])}</div>
           <button class="speak" data-say="${esc(it.en)}" aria-label="Ascolta ${esc(it.en)}">${ICON.speaker}</button></div>`).join('');
     }).join('');
-    app.innerHTML = `<div class="wrap screen">
+    app.innerHTML = `<div class="wrap screen words-screen">
       <h1 class="hello">Le mie <span>parole</span></h1>
       <p class="lead">Più carote ha una parola, meglio te la ricordi. Tocca per ascoltarla.</p>
       ${groups ? `<div class="list">${groups}</div>` : '<div class="empty"><div class="e" aria-hidden="true">🥕</div><p>Qui arrivano le parole che impari. Fai la prima lezione!</p></div>'}
@@ -209,7 +209,7 @@
   /* ---------------- Per i grandi ---------------- */
   function renderGrownups() {
     const s = S.settings, voice = Voice.pick();
-    app.innerHTML = `<div class="wrap screen">
+    app.innerHTML = `<div class="wrap screen grown">
       <h1 class="hello">Per i <span>grandi</span></h1>
       <section class="card">
         <h3>Come funziona</h3>
@@ -357,13 +357,13 @@
       ensureCard(it.id);
       return {
         html: `<div class="kicker">${it.k === 'p' ? 'Una frase nuova!' : 'Una parola nuova!'}</div>
-          <div class="pic-xl" aria-hidden="true">${it.em}</div>
-          <div class="en-xl" lang="en">${esc(it.en)}</div>
-          <div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button>
+          <div class="q"><div class="pic-xl" aria-hidden="true">${it.em}</div>
+          <div class="en-xl" lang="en">${esc(it.en)}</div></div>
+          <div class="a"><div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button>
             <button class="audio-btn" data-say="${esc(it.en)}" data-slow="1"><span aria-hidden="true">🐢</span>Piano</button></div>
           <div class="it-md">${esc(it.it)}</div>
           <div class="say">si legge <b>${esc(it.pr)}</b></div>
-          ${it.hk ? `<div class="hook">${esc(it.hk)}</div>` : ''}`,
+          ${it.hk ? `<div class="hook">${esc(it.hk)}</div>` : ''}</div>`,
         foot: '<button class="btn go block" id="go">Ok, ho capito!</button>',
         bind() { setTimeout(() => Voice.say(it.en), 300); $('#go').addEventListener('click', () => { sfx.hop(); next(); }); },
       };
@@ -372,9 +372,9 @@
       const it = byId[st.id];
       return {
         html: `<div class="kicker">Ascolta e tocca la figura giusta</div>
-          <button class="play-big" id="play" aria-label="Ascolta">${ICON.speaker}</button>
-          <button class="btn ghost" data-say="${esc(it.en)}" data-slow="1">🐢 Più piano</button>
-          ${picOpts(shuffle([it, ...distractors(it, 2)]))}`,
+          <div class="q"><button class="play-big" id="play" aria-label="Ascolta">${ICON.speaker}</button>
+          <button class="btn ghost" data-say="${esc(it.en)}" data-slow="1">🐢 Più piano</button></div>
+          <div class="a">${picOpts(shuffle([it, ...distractors(it, 2)]))}</div>`,
         bind() { autoPlay(it); bindOptions(it); },
       };
     },
@@ -382,9 +382,9 @@
       const it = byId[st.id];
       return {
         html: `<div class="kicker">Quale figura è?</div>
-          <div class="en-lg" lang="en">${esc(it.en)}</div>
-          <div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button></div>
-          ${picOpts(shuffle([it, ...distractors(it, 2)]))}`,
+          <div class="q"><div class="en-lg" lang="en">${esc(it.en)}</div>
+          <div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button></div></div>
+          <div class="a">${picOpts(shuffle([it, ...distractors(it, 2)]))}</div>`,
         bind() { setTimeout(() => Voice.say(it.en), 300); bindOptions(it); },
       };
     },
@@ -393,9 +393,9 @@
       const opts = shuffle([it, ...distractors(it, 2)]);
       return {
         html: `<div class="kicker">Come si dice in inglese?</div>
-          <div class="pic-lg" aria-hidden="true">${it.em}</div>
-          <div class="it-md">${esc(it.it)}</div>
-          <div class="options">${opts.map((o) => `<button class="opt" lang="en" data-id="${o.id}">${esc(o.en)}</button>`).join('')}</div>`,
+          <div class="q"><div class="pic-lg" aria-hidden="true">${it.em}</div>
+          <div class="it-md">${esc(it.it)}</div></div>
+          <div class="a"><div class="options">${opts.map((o) => `<button class="opt" lang="en" data-id="${o.id}">${esc(o.en)}</button>`).join('')}</div></div>`,
         bind() { bindOptions(it); },
       };
     },
@@ -404,9 +404,9 @@
       const opts = shuffle([it, ...distractors(it, 2)]);
       return {
         html: `<div class="kicker">Ascolta la frase: cosa vuol dire?</div>
-          <button class="play-big" id="play" aria-label="Ascolta">${ICON.speaker}</button>
-          <button class="btn ghost" data-say="${esc(it.en)}" data-slow="1">🐢 Più piano</button>
-          <div class="options">${opts.map((o) => `<button class="opt" data-id="${o.id}" style="font-size:20px"><span aria-hidden="true">${o.em}</span> ${esc(o.it)}</button>`).join('')}</div>`,
+          <div class="q"><button class="play-big" id="play" aria-label="Ascolta">${ICON.speaker}</button>
+          <button class="btn ghost" data-say="${esc(it.en)}" data-slow="1">🐢 Più piano</button></div>
+          <div class="a"><div class="options">${opts.map((o) => `<button class="opt phrase" data-id="${o.id}"><span aria-hidden="true">${o.em}</span> ${esc(o.it)}</button>`).join('')}</div></div>`,
         bind() { autoPlay(it); bindOptions(it); },
       };
     },
@@ -423,11 +423,11 @@
       const left = shuffle(list.slice()), right = shuffle(list.slice());
       return {
         html: `<div class="kicker">Trova le coppie!</div>
-          <p class="say">Tocca una parola e poi la sua figura.</p>
+          <div class="full"><p class="say">Tocca una parola e poi la sua figura.</p>
           <div class="match">
             <div class="col">${left.map((o) => `<button class="mt" lang="en" data-side="l" data-id="${o.id}">${esc(o.en)}</button>`).join('')}</div>
             <div class="col">${right.map((o) => `<button class="mt" data-side="r" data-id="${o.id}" aria-label="${esc(o.it)}"><span class="e" aria-hidden="true">${o.em}</span></button>`).join('')}</div>
-          </div>`,
+          </div></div>`,
         bind() {
           let sel = null, remaining = list.length;
           $$('#ex .mt').forEach((b) => b.addEventListener('click', () => {
@@ -463,11 +463,11 @@
     const label = (w) => (joiner ? (['I', 'Babi'].includes(w) ? w : w.toLowerCase()) : w);
     return {
       html: `<div class="kicker">${title}</div>
-        <div class="pic-lg" aria-hidden="true">${it.em}</div>
+        <div class="q"><div class="pic-lg" aria-hidden="true">${it.em}</div>
         <div class="it-md">${esc(it.it)}</div>
-        <div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button></div>
-        <div class="build-ans" id="ans" aria-label="La tua risposta"></div>
-        <div class="build-pool" id="pool">${pieces.map((w, i) => `<button class="tile" data-i="${i}" lang="en">${esc(label(w))}</button>`).join('')}</div>`,
+        <div class="audio-row"><button class="audio-btn" data-say="${esc(it.en)}">${ICON.speaker}Ascolta</button></div></div>
+        <div class="a"><div class="build-ans" id="ans" aria-label="La tua risposta"></div>
+        <div class="build-pool" id="pool">${pieces.map((w, i) => `<button class="tile" data-i="${i}" lang="en">${esc(label(w))}</button>`).join('')}</div></div>`,
       foot: '<button class="btn go block" id="check" disabled>Controlla</button>',
       bind() {
         const ans = $('#ans'), pool = $('#pool'), check = $('#check');

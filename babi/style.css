@@ -234,6 +234,63 @@ textarea { width: 100%; min-height: 84px; border-radius: 14px; border: 2px solid
 .msg.err { color: var(--lilac); }
 .row-btns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
+/* Blocchi della lezione: domanda (q) e risposta (a). Sul telefono stanno uno sotto l'altro. */
+.q, .a, .full { display: grid; gap: 16px; min-width: 0; }
+.opt.phrase { font-size: 20px; }
+
+/* ---------- Tablet (iPad) ---------- */
+@media (min-width: 700px) {
+  body { font-size: 21px; }
+  .wrap { max-width: 760px; }
+  .hello { font-size: 52px; }
+  .pic-xl { font-size: 150px; }
+  .pic-lg { font-size: 112px; }
+  .en-xl { font-size: 64px; }
+  .en-lg { font-size: 54px; }
+  .options.pics .opt .e { font-size: 76px; }
+  .opt { font-size: 30px; min-height: 84px; }
+  .opt.phrase { font-size: 24px; }
+  .tile { font-size: 32px; min-height: 66px; min-width: 66px; }
+  .mt { min-height: 92px; font-size: 28px; }
+  .mt .e { font-size: 56px; }
+  .play-big { width: 150px; height: 150px; }
+  .sheet .in { max-width: 680px; }
+  .list { grid-template-columns: 1fr 1fr; align-items: start; }
+  .list .group-title { grid-column: 1 / -1; }
+  .grown { grid-template-columns: 1fr 1fr; align-items: start; }
+  .grown > .hello { grid-column: 1 / -1; }
+  .album { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .sticker { font-size: 60px; }
+  .tabbar nav { max-width: 760px; }
+}
+
+/* ---------- iPad in orizzontale: due colonne ---------- */
+@media (min-width: 900px) and (orientation: landscape) {
+  .wrap { max-width: 1180px; }
+  .tabbar nav { max-width: 1180px; }
+
+  /* Percorso: saluto e pulsanti a sinistra, fermi; la mappa scorre a destra. */
+  .screen.home { grid-template-columns: minmax(320px, 400px) 1fr; column-gap: 48px; align-items: start; }
+  .side { position: sticky; top: calc(var(--safe-top) + 20px); display: grid; gap: 18px; }
+  .map { display: grid; gap: 6px; }
+  .map .trail { grid-template-columns: repeat(4, 1fr); justify-items: center; gap: 18px 8px; }
+  .map .node, .map .node:nth-child(n) { justify-self: center; margin: 0; }
+  .map .node:nth-child(even) { margin-top: 36px; }
+
+  /* Lezione: domanda a sinistra, risposte a destra. */
+  .lesson { grid-template-rows: auto 1fr auto; }
+  .ex { grid-template-columns: 1fr 1fr; column-gap: 56px; align-items: center; padding: 12px 0; }
+  .ex > .kicker, .ex > .full { grid-column: 1 / -1; }
+  .ex > .a { align-content: center; }
+  .ex .match { max-width: 820px; margin: 0 auto; width: 100%; }
+  .foot { justify-self: end; width: min(460px, 100%); }
+  .pic-xl { font-size: 170px; }
+
+  /* Altre schede su più colonne. */
+  .list { grid-template-columns: 1fr 1fr 1fr; }
+  .grown { grid-template-columns: 1fr 1fr 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
