@@ -78,6 +78,11 @@ h2.section { margin: 8px 0 -6px; font: italic 700 24px/1.1 var(--display); color
 .day { display: grid; gap: 4px; justify-items: center; font-size: 13px; font-weight: 700; color: var(--muted); }
 .day svg { width: 30px; height: 28px; fill: #f3dbe5; }
 .day.lit svg { fill: var(--pink); }
+.day.rec svg { fill: #f7a3c2; stroke: var(--pink); stroke-width: 1.2; }
+.recover { display: grid; gap: 10px; background: var(--lilac-soft); box-shadow: none; }
+.recover h3 { margin: 0; font: italic 700 22px/1.1 var(--display); color: var(--lilac); }
+.recover p { margin: 0; font-size: 15px; }
+.recover .btn.soft { background: #fff; color: var(--lilac); }
 .day.today-mark span { color: var(--berry); text-decoration: underline; text-underline-offset: 3px; }
 .week-note { margin: 12px 0 0; font-size: 15px; color: var(--ink); }
 .week-note b { color: var(--berry); }

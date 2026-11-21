@@ -119,3 +119,30 @@ test('quando va bene il ritmo accelera: 5 novità sopra l\'80%, 6 sopra il 90%',
   assert.equal(SRS.planSession(s80, items, T).fresh.length, 5);
   assert.equal(SRS.planSession(s90, items, T).fresh.length, 6);
 });
+
+test('forSpeech: la "I" da sola si legge "eye", il resto non cambia', () => {
+  assert.equal(SRS.forSpeech('I'), 'eye');
+  assert.equal(SRS.forSpeech(' I '), 'eye');
+  assert.equal(SRS.forSpeech('I love you'), 'I love you');
+  assert.equal(SRS.forSpeech('hello'), 'hello');
+});
+
+test('missedDay: propone il giorno saltato più recente, al massimo 7 giorni indietro e uno al giorno', () => {
+  const cards = { hello: { box: 1, due: T, added: T - 10 } };
+  const days = {};
+  for (let d = T - 10; d < T; d++) days[d] = { done: true };
+  delete days[T - 3];
+  assert.equal(SRS.missedDay({ cards, days }, T), T - 3);
+  delete days[T - 1];
+  assert.equal(SRS.missedDay({ cards, days }, T), T - 1);
+  assert.equal(SRS.missedDay({ cards, days, lastRecover: T }, T), null);
+  const old = { cards, days: { ...days, [T - 1]: { done: true }, [T - 3]: { done: true } } };
+  delete old.days[T - 9];
+  assert.equal(SRS.missedDay(old, T), null, 'oltre i 7 giorni non si recupera');
+  assert.equal(SRS.missedDay({ cards: {}, days: {} }, T), null, 'prima del primo giorno non c\'è nulla da recuperare');
+});
+
+test('un giorno recuperato ricuce i giorni di fila', () => {
+  const days = { [T - 1]: { done: true, recovered: true }, [T - 2]: { done: true }, [T]: { done: true } };
+  assert.equal(SRS.streak({ days }, T), 3);
+});

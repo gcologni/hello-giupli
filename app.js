@@ -62,7 +62,7 @@
       if (!this.ok) return;
       try {
         speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
+        const u = new SpeechSynthesisUtterance(SRS.forSpeech(text));
         const v = this.pick();
         if (v) u.voice = v;
         u.lang = v ? v.lang : S.settings.accent;
@@ -184,12 +184,21 @@
       </section>`;
     }
 
+    const missed = SRS.missedDay(S, t);
+    const missedName = missed === null ? '' : missed === t - 1 ? 'ieri' : DAYS[new Date(missed * 86400000).getUTCDay()];
+    const recover = missed === null ? '' : `<section class="card recover">
+        <h3>Hai saltato ${missed === t - 1 ? 'ieri' : esc(missedName)}?</h3>
+        <p>Nessun problema. Con un ripasso di 5 minuti recuperi il giorno: il suo cuore si accende e i giorni di fila tornano. Puoi recuperare un giorno al giorno, fino a una settimana indietro.</p>
+        <button class="btn soft block" id="recover">Recupera ${esc(missedName)}</button>
+      </section>`;
+
     const now = new Date();
     const dow = (now.getDay() + 6) % 7;
     const week = ['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((l, i) => {
       const d = t - dow + i;
       const ok = S.days[d] && S.days[d].done;
-      return `<div class="day ${ok ? 'lit' : ''} ${d === t ? 'today-mark' : ''}">${ICON.heart()}<span>${l}</span></div>`;
+      const rec = ok && S.days[d].recovered;
+      return `<div class="day ${ok ? 'lit' : ''} ${rec ? 'rec' : ''} ${d === t ? 'today-mark' : ''}" ${rec ? 'title="Giorno recuperato"' : ''}>${ICON.heart()}<span>${l}</span></div>`;
     }).join('');
     const weekNote = st >= 2 ? `<b>${st} giorni di fila.</b> Continua così!`
       : st === 1 ? 'Un giorno alla volta: è così che si impara.'
@@ -220,6 +229,7 @@
       </header>
       ${install}
       ${lesson}
+      ${recover}
       <section class="card"><div class="week">${week}</div><p class="week-note">${weekNote}</p></section>
       <section class="stats">
         <div class="stat"><b>${learned}</b><span>parole che sai</span></div>
@@ -231,6 +241,7 @@
     bindTabs();
     const s = $('#start'); if (s) s.addEventListener('click', () => startSession('normal'));
     const x = $('#extra'); if (x) x.addEventListener('click', () => startSession('extra'));
+    const rc = $('#recover'); if (rc) rc.addEventListener('click', () => startSession('recover', missed));
   }
 
   /* ---------------- Le mie parole ---------------- */
@@ -316,12 +327,12 @@
   }
 
   /* ---------------- Lezione ---------------- */
-  function startSession(mode) {
+  function startSession(mode, recoverDay) {
     const t = today();
-    let plan = SRS.planSession(S, items, t, { mode });
+    let plan = SRS.planSession(S, items, t, { mode: mode === 'recover' ? 'extra' : mode });
     if (!plan.fresh.length && !plan.review.length) plan = SRS.planSession(S, items, t, { mode: 'extra' });
     const steps = SRS.buildSteps(plan, S, byId, rng);
-    run = { mode, plan, steps, i: 0, graded: new Set(), answers: 0, ok: 0, again: {}, start: Date.now(), day: t };
+    run = { mode, plan, steps, i: 0, graded: new Set(), answers: 0, ok: 0, again: {}, start: Date.now(), day: t, recoverDay };
     Voice.say(''); // sblocca la voce su iPhone dentro il tocco
     renderStep();
   }
@@ -371,7 +382,7 @@
     if (!run.graded.has(it.id)) {
       run.graded.add(it.id);
       ensureCard(it.id);
-      if (run.mode !== 'extra' || !ok) S.cards[it.id] = SRS.grade(S.cards[it.id], ok, today());
+      if (run.mode === 'normal' || !ok) S.cards[it.id] = SRS.grade(S.cards[it.id], ok, today());
       save();
     }
     if (!ok) {
@@ -600,7 +611,13 @@
     d.minutes += Math.max(1, Math.round((Date.now() - run.start) / 60000));
     if (run.mode === 'normal') { d.done = true; d.fresh += run.plan.fresh.length; d.review += run.plan.review.length; }
     else d.extra = (d.extra || 0) + 1;
-    S.days[t] = d; save();
+    S.days[t] = d;
+    if (run.mode === 'recover' && typeof run.recoverDay === 'number') {
+      const m = S.days[run.recoverDay] || { ok: 0, total: 0, fresh: 0, review: 0, minutes: 0 };
+      S.days[run.recoverDay] = { ...m, done: true, recovered: true };
+      S.lastRecover = t;
+    }
+    save();
     const r = run; run = null;
     const st = SRS.streak(S, t);
     const pct = r.answers ? Math.round((r.ok / r.answers) * 100) : 100;
@@ -610,7 +627,7 @@
       ICON.heart().replace('<svg', `<svg style="left:${(i * 7.3) % 100}%;animation-duration:${3 + (i % 5) * 0.7}s;animation-delay:${(i % 7) * 0.25}s"`)).join('')}</div>
       <div class="wrap done">
         ${ICON.heart('big-heart')}
-        <h1>${r.mode === 'normal' ? 'Lezione <span>finita!</span>' : 'Ripasso <span>fatto!</span>'}</h1>
+        <h1>${r.mode === 'normal' ? 'Lezione <span>finita!</span>' : r.mode === 'recover' ? 'Giorno <span>recuperato!</span>' : 'Ripasso <span>fatto!</span>'}</h1>
         <p class="lead">${pct >= 85 ? 'Sei andata benissimo.' : pct >= 60 ? 'Brava! Gli errori di oggi tornano domani, così si fissano.' : 'Oggi era tosta, ma ce l\'hai fatta. È proprio così che si impara.'}</p>
         <section class="stats">
           <div class="stat"><b>${r.ok}/${r.answers}</b><span>risposte giuste</span></div>

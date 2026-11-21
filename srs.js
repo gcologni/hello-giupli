@@ -65,6 +65,32 @@
     return n;
   }
 
+  const RECOVER_WINDOW = 7;
+
+  /** Primo giorno in cui Giupli ha usato l'app, o null. */
+  function firstDay(state) {
+    const days = Object.keys(state.days || {}).filter((d) => state.days[d].done).map(Number);
+    const added = Object.values(state.cards || {}).map((c) => c.added).filter((d) => typeof d === 'number');
+    const all = days.concat(added);
+    return all.length ? Math.min(...all) : null;
+  }
+
+  /** Il giorno saltato più recente negli ultimi 7, se si può ancora recuperare. Uno al giorno. */
+  function missedDay(state, today) {
+    const first = firstDay(state);
+    if (first === null || state.lastRecover === today) return null;
+    const days = state.days || {};
+    for (let d = today - 1; d >= Math.max(first, today - RECOVER_WINDOW); d--) {
+      if (!(days[d] && days[d].done)) return d;
+    }
+    return null;
+  }
+
+  /** Testo per la voce: una "I" da sola viene letta "capital I", quindi le si fa dire "eye". */
+  function forSpeech(text) {
+    return String(text).trim() === 'I' ? 'eye' : String(text);
+  }
+
   /** Quali parole ripassare e quali introdurre oggi. */
   function planSession(state, items, today, opts) {
     const mode = (opts && opts.mode) || 'normal';
@@ -188,7 +214,7 @@
 
   return {
     INTERVALS, MAX_BOX, NEW_PER_DAY, MAX_REVIEW, LEARNED_BOX,
-    dayNumber, shuffle, newCard, grade, mastery, isLearned, recentAccuracy, streak,
+    dayNumber, shuffle, newCard, grade, mastery, isLearned, recentAccuracy, streak, firstDay, missedDay, forSpeech, RECOVER_WINDOW,
     planSession, exerciseFor, easyFor, buildSteps, spreadOut, normalize, levenshtein, checkTyped, tiles,
   };
 });
