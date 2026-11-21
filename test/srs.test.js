@@ -69,6 +69,18 @@ test('al massimo 2 frasi nuove al giorno', () => {
   plan.fresh.forEach((id) => assert.equal(byId[id].k, 'p'));
 });
 
+test('primo giorno: mai la stessa parola in due esercizi singoli di fila', () => {
+  const state = { cards: {}, days: {} };
+  for (let seed = 1; seed < 60; seed++) {
+    const steps = SRS.buildSteps(SRS.planSession(state, items, T), state, byId, seeded(seed));
+    steps.forEach((s, i) => {
+      if (i === 0 || steps[i - 1].t === 'intro' || s.t === 'match' || steps[i - 1].t === 'match') return;
+      const ids = s.ids || [s.id], prev = steps[i - 1].ids || [steps[i - 1].id];
+      assert.ok(!ids.some((id) => prev.includes(id)), `seed ${seed} passo ${i}`);
+    });
+  }
+});
+
 test('la lezione presenta ogni novità prima di esercitarla e non ripete la stessa parola di fila (tranne subito dopo la presentazione)', () => {
   const cards = {};
   items.slice(0, 12).forEach((it, i) => { cards[it.id] = { box: i % 5, due: T, right: 1, wrong: 0, seen: 1 }; });
@@ -81,7 +93,7 @@ test('la lezione presenta ogni novità prima di esercitarla e non ripete la stes
       if (s.t === 'intro') introAt[s.id] = i;
       const ids = s.ids || [s.id];
       ids.forEach((id) => { if (plan.fresh.includes(id) && s.t !== 'intro') assert.ok(introAt[id] < i, `${id} esercitata prima di essere presentata`); });
-      if (i > 0 && steps[i - 1].t !== 'intro') {
+      if (i > 0 && steps[i - 1].t !== 'intro' && s.t !== 'match' && steps[i - 1].t !== 'match') {
         const prev = steps[i - 1].ids || [steps[i - 1].id];
         assert.ok(!ids.some((id) => prev.includes(id)), `stessa parola di fila al passo ${i} (seed ${seed})`);
       }

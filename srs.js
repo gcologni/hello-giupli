@@ -138,7 +138,8 @@
   const easyFor = (item) => (item.k === 'p' ? 'listenP' : 'enIt');
 
   const stepIds = (s) => (s.ids ? s.ids : [s.id]);
-  const clash = (a, b) => !!a && !!b && stepIds(a).some((id) => stepIds(b).includes(id));
+  // Il gioco delle coppie usa tante parole insieme: può stare vicino a un esercizio su una di esse.
+  const clash = (a, b) => !!a && !!b && a.t !== 'match' && b.t !== 'match' && stepIds(a).some((id) => stepIds(b).includes(id));
 
   const hasClash = (seq, head) => seq.some((st, i) => clash(st, i === 0 ? head : seq[i - 1]));
 
@@ -161,9 +162,8 @@
       if (i > 0) steps.push({ t: easyFor(fresh[i - 1]), id: fresh[i - 1].id });
     });
 
-    // 2. Gioco delle coppie con le parole nuove.
+    // 2. Gioco delle coppie con le parole nuove: entra nel mescolamento, così non segue un esercizio sulla stessa parola.
     const freshWords = fresh.filter((x) => x.k !== 'p');
-    if (freshWords.length >= 3) steps.push({ t: 'match', ids: freshWords.slice(0, 4).map((x) => x.id) });
 
     // 3. Ripassi e novità mescolati.
     const mixed = plan.review.map((id) => {
@@ -171,6 +171,7 @@
       return { t: exerciseFor(it, (cards[id] && cards[id].box) || 0, rng), id };
     });
     fresh.forEach((it) => mixed.push({ t: it.k === 'p' ? 'build' : 'itEn', id: it.id }));
+    if (freshWords.length >= 3) mixed.push({ t: 'match', ids: freshWords.slice(0, 4).map((x) => x.id) });
     const reviewWords = plan.review.filter((id) => byId[id].k !== 'p');
     if (reviewWords.length >= 4) mixed.push({ t: 'match', ids: shuffle(reviewWords.slice(), rng).slice(0, 4) });
     spreadOut(shuffle(mixed, rng), steps[steps.length - 1], rng);

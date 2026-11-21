@@ -1,6 +1,6 @@
 /* Funziona anche senza internet: tiene in memoria l'app e i caratteri.
    Cambia VERSION a ogni rilascio per far arrivare gli aggiornamenti. */
-const VERSION = 'hello-giupli-2';
+const VERSION = 'hello-giupli-3';
 const SHELL = ['./', 'index.html', 'style.css', 'data.js', 'srs.js', 'app.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
@@ -10,7 +10,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== 'fonts').map((k) => caches.delete(k))))
+    .then((keys) => Promise.all(keys.filter((k) => k.startsWith('hello-giupli-') && k !== VERSION).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -34,6 +34,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.includes('/babi/')) return; // l'app di Babi ha il suo service worker
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then((res) => {
       const copy = res.clone();

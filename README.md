@@ -18,6 +18,16 @@ I progressi restano sul telefono. Per spostarli su un altro telefono: Impostazio
 - **Ogni parola** ha immagine, voce inglese (anche lenta), pronuncia scritta all'italiana e un trucco per ricordarla.
 - **Giorni saltati:** un giorno saltato negli ultimi 7 si recupera con un ripasso di 5 minuti, uno al giorno. Nella settimana compare come un cuore più chiaro.
 
+## Hello Babi
+
+Nella cartella `babi/` c'è la versione per bambini, a tema cavalli e coniglietti: `gcologni.github.io/hello-giupli/babi/`.
+
+- Nessuna lezione giornaliera: un percorso di lezioni brevi da 2-4 parole, da fare quante volte si vuole, una dopo l'altra.
+- Il ripasso misura il tempo in lezioni fatte, non in giorni. Ogni lezione ripassa 2-4 parole vecchie.
+- Esercizi con figure e voce, lettere da mettere in ordine per le parole corte. Stelline e una figurina per ogni lezione nuova.
+- Progressi e cache separati da quelli di Giupli: si possono installare tutte e due sullo stesso telefono.
+- Usa `../srs.js` per la memoria delle parole; la logica delle lezioni sta in `babi/kids.js`.
+
 ## File
 
 | File | Contenuto |
