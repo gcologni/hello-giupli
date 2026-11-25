@@ -1,6 +1,6 @@
 /* Funziona anche senza internet: tiene in memoria l'app e i caratteri.
    Cambia VERSION a ogni rilascio per far arrivare gli aggiornamenti. */
-const VERSION = 'hello-babi-2';
+const VERSION = 'hello-babi-3';
 const SHELL = ['./', 'index.html', 'style.css', 'data.js', '../srs.js', 'kids.js', 'app.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

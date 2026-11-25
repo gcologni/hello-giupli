@@ -1,11 +1,17 @@
 /* Hello Babi: interfaccia. Logica in kids.js (lezioni) e ../srs.js (memoria delle parole), corso in data.js. */
 (() => {
   'use strict';
-  const { units, items } = window.BABI_COURSE;
+  const { levels, units, items } = window.BABI_COURSE;
   const SRS = window.SRS, KIDS = window.KIDS;
   const byId = Object.fromEntries(items.map((i) => [i.id, i]));
   const lessons = KIDS.makeLessons(units, items);
+  const challenges = KIDS.makeChallenges(units, items);
+  const challengeByUnit = Object.fromEntries(challenges.map((c) => [c.u, c]));
   const unitById = Object.fromEntries(units.map((u) => [u.id, u]));
+  const levelByLv = Object.fromEntries(levels.map((l) => [l.lv, l]));
+  // Prima parola di ogni capitolo: prima di presentarla arriva la regoletta.
+  const firstOfUnit = new Set(units.map((u) => (items.find((i) => i.u === u.id) || {}).id).filter(Boolean));
+  const lessonLevel = (l) => unitById[l.u].lv;
   const KEY = 'hello-babi-v1';
   const app = document.getElementById('app');
   const rng = Math.random;
@@ -22,7 +28,7 @@
 
   /* ---------------- Stato salvato ---------------- */
   // tick = numero di lezioni finite: è l'orologio del ripasso, al posto dei giorni.
-  const defaults = () => ({ v: 1, cards: {}, done: {}, tick: 0, stickers: 0, lessonsPlayed: 0, settings: { accent: 'en-GB', slow: false, sound: true } });
+  const defaults = () => ({ v: 1, cards: {}, done: {}, rosettes: {}, tick: 0, stickers: 0, lessonsPlayed: 0, settings: { accent: 'en-GB', slow: false, sound: true } });
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
@@ -137,42 +143,58 @@
     const unlocked = KIDS.unlockedCount(S, lessons);
     const first = !S.lessonsPlayed;
     const finished = allDone();
+    const openChallenges = challenges.filter((c) => KIDS.challengeOpen(S, lessons, c.u) && !S.rosettes[c.u]);
     const bubble = first ? 'Ciao Babi! Io sono <b>Fiocco</b>. Impariamo l\'inglese con Stella la pony?'
-      : finished ? 'Hai finito tutto il percorso! Rigioca le lezioni o fai un <b>gioco libero</b>.'
+      : finished ? (openChallenges.length ? 'Hai finito tutte le lezioni! Ora vinci tutte le <b>coccarde</b> con le gare.' : 'Hai vinto tutto! Sei una campionessa di inglese!')
+      : openChallenges.length ? `Pronta per la <b>lezione ${nl.n}</b>? C'è anche una <b>gara</b> che ti aspetta: vinci la coccarda!`
       : `Pronta per la <b>lezione ${nl.n}</b>? Puoi farne quante vuoi!`;
     let html = '';
-    let lastUnit = null;
-    lessons.forEach((l) => {
-      if (l.u !== lastUnit) {
-        if (lastUnit) html += '</div>';
-        const u = unitById[l.u];
-        html += `<div class="unit-head"><span aria-hidden="true">${u.em}</span>${esc(u.title)}</div><div class="trail">`;
-        lastUnit = l.u;
+    let lastLv = null;
+    units.forEach((u) => {
+      const list = lessons.filter((l) => l.u === u.id);
+      if (!list.length) return;
+      if (u.lv !== lastLv) {
+        const lv = levelByLv[u.lv];
+        const open = list[0].n <= unlocked;
+        html += `<div class="level-banner lv${u.lv} ${open ? '' : 'closed'}"><span class="le" aria-hidden="true">${lv.em}</span>
+          <div><small>Livello ${u.lv}</small><b>${esc(lv.title)}</b>${open ? '' : `<em>Si apre finendo il livello ${u.lv - 1}</em>`}</div></div>`;
+        lastLv = u.lv;
       }
-      const done = S.done[l.n];
-      const open = l.n <= unlocked;
-      const cls = done ? 'done' : open ? 'next' : 'locked';
-      html += `<div class="node ${cls}"><button class="stone" data-lesson="${l.n}" ${open ? '' : 'disabled'} aria-label="Lezione ${l.n}${open ? '' : ', chiusa'}">${open ? l.n : '🔒'}</button>
-        <div class="stars" aria-label="${done || 0} stelle">${done ? starsHtml(done) : ''}</div></div>`;
+      html += `<div class="unit-head"><span aria-hidden="true">${u.em}</span>${esc(u.title)}</div><div class="trail">`;
+      list.forEach((l) => {
+        const done = S.done[l.n];
+        const open = l.n <= unlocked;
+        const cls = done ? 'done' : open ? 'next' : 'locked';
+        html += `<div class="node ${cls}"><button class="stone" data-lesson="${l.n}" ${open ? '' : 'disabled'} aria-label="Lezione ${l.n}${open ? '' : ', chiusa'}">${open ? l.n : '🔒'}</button>
+          <div class="stars" aria-label="${done || 0} stelle">${done ? starsHtml(done) : ''}</div></div>`;
+      });
+      const c = challengeByUnit[u.id];
+      const cOpen = KIDS.challengeOpen(S, lessons, u.id);
+      const won = S.rosettes[u.id];
+      html += `<div class="node challenge ${won ? 'won' : cOpen ? 'ready' : 'locked'}"><button class="stone" data-challenge="${c.u}" ${cOpen ? '' : 'disabled'} aria-label="Gara del capitolo ${esc(u.title)}${cOpen ? '' : ', si apre finendo il capitolo'}">${won || cOpen ? '🏵️' : '🔒'}</button>
+        <div class="stars">${won ? starsHtml(won) : '<span class="lbl">Gara</span>'}</div></div>`;
+      html += '</div>';
     });
-    html += '</div>';
     const words = introduced().length;
     app.innerHTML = `<div class="wrap screen home"><aside class="side">
       <h1 class="hello">Hello, <span>Babi!</span></h1>
       <div class="mascots"><div class="mascot" aria-hidden="true">🐰</div><div class="bubble">${bubble}</div></div>
       ${finished ? '' : `<button class="btn go block" id="play">${first ? 'Iniziamo!' : `Gioca la lezione ${nl.n}`}</button>`}
+      ${openChallenges.length ? `<button class="btn gold block" id="race">🏵️ Gara: ${esc(unitById[openChallenges[0].u].title)}</button>` : ''}
       ${words >= 6 ? '<button class="btn soft block" id="free">Gioco libero: ripassa le parole</button>' : ''}
       <div class="counters">
-        <div class="counter"><b>${Object.keys(S.done).length}</b><span>lezioni</span></div>
         <div class="counter"><b>${words}</b><span>parole</span></div>
         <div class="counter"><b>${S.stickers}</b><span>figurine</span></div>
+        <div class="counter"><b>${Object.keys(S.rosettes).length}</b><span>coccarde</span></div>
       </div></aside>
       <section class="map" aria-label="Percorso delle lezioni">${html}</section>
     </div>${tabbar()}`;
     bindTabs();
     const p = $('#play'); if (p) p.addEventListener('click', () => startLesson(nl));
+    const r = $('#race'); if (r) r.addEventListener('click', () => startLesson(openChallenges[0]));
     const f = $('#free'); if (f) f.addEventListener('click', () => startLesson(null));
     $$('[data-lesson]').forEach((b) => b.addEventListener('click', () => startLesson(lessons[+b.dataset.lesson - 1])));
+    $$('[data-challenge]').forEach((b) => b.addEventListener('click', () => startLesson(challengeByUnit[b.dataset.challenge])));
   }
 
   /* ---------------- Figurine ---------------- */
@@ -184,6 +206,11 @@
       <h1 class="hello">Le mie <span>figurine</span></h1>
       <p class="lead">Ogni lezione nuova finita ti regala una figurina. Ne hai ${S.stickers} su ${KIDS.STICKERS.length}!</p>
       <div class="album">${cells}</div>
+      <h2 class="section-title">Le coccarde delle gare</h2>
+      <p class="lead">Finisci tutte le lezioni di un capitolo e vinci la sua gara.</p>
+      <div class="album">${units.map((u) => S.rosettes[u.id]
+        ? `<div class="sticker rosette" aria-label="Coccarda ${esc(u.title)}, ${S.rosettes[u.id]} stelle"><span>${u.em}</span><small>${starsHtml(S.rosettes[u.id])}</small></div>`
+        : `<div class="sticker off" aria-label="Coccarda da vincere: ${esc(u.title)}">🏵️</div>`).join('')}</div>
     </div>${tabbar()}`;
     bindTabs();
   }
@@ -198,12 +225,22 @@
           <div class="w"><b lang="en">${esc(it.en)}</b><span>${esc(it.it)}</span>${carrotsHtml(S.cards[it.id])}</div>
           <button class="speak" data-say="${esc(it.en)}" aria-label="Ascolta ${esc(it.en)}">${ICON.speaker}</button></div>`).join('');
     }).join('');
+    const tips = units.filter((u) => items.some((x) => x.u === u.id && S.cards[x.id]));
     app.innerHTML = `<div class="wrap screen words-screen">
       <h1 class="hello">Le mie <span>parole</span></h1>
+      ${tips.length ? `<details class="rules"><summary>💡 Le regolette di Stella (${tips.length})</summary><div class="rules-list">${tips.map((u) => tipCard(u)).join('')}</div></details>` : ''}
       <p class="lead">Più carote ha una parola, meglio te la ricordi. Tocca per ascoltarla.</p>
       ${groups ? `<div class="list">${groups}</div>` : '<div class="empty"><div class="e" aria-hidden="true">🥕</div><p>Qui arrivano le parole che impari. Fai la prima lezione!</p></div>'}
     </div>${tabbar()}`;
     bindTabs(); bindSay();
+  }
+
+  /** Regoletta del capitolo: testo di Stella più esempi da ascoltare. */
+  function tipCard(u) {
+    const t = u.tip;
+    return `<div class="tip-card"><div class="tip-head"><span aria-hidden="true">${u.em}</span><b>${esc(t.title)}</b></div>
+      <p>${esc(t.text)}</p>
+      <div class="tip-ex">${t.ex.map(([en, it]) => `<button class="ex-row" data-say="${esc(en)}"><span class="sp" aria-hidden="true">🔊</span><b lang="en">${esc(en)}</b><span>${esc(it)}</span></button>`).join('')}</div></div>`;
   }
 
   /* ---------------- Per i grandi ---------------- */
@@ -213,7 +250,8 @@
       <h1 class="hello">Per i <span>grandi</span></h1>
       <section class="card">
         <h3>Come funziona</h3>
-        <p>${lessons.length} lezioni brevi, da 3-4 minuti, con ${items.length} parole e frasi. Babi può farne quante vuole, una dopo l'altra. Ogni lezione porta 2-4 parole nuove e ripassa quelle vecchie che ricorda meno. Le parole sbagliate tornano poco dopo.</p>
+        <p>Tre livelli: il prato (parole di base), il bosco incantato (più parole, numeri fino a 20, domande) e il castello dei pony (prime regole: colore prima del nome, plurali, can, in/on/under, my/his/her). In tutto ${lessons.length} lezioni brevi con ${items.length} parole e frasi.</p>
+        <p>Babi può fare quante lezioni vuole, una dopo l'altra. Ogni lezione porta 2-4 novità e ripassa le parole che ricorda meno; quelle sbagliate tornano poco dopo. All'inizio di ogni capitolo Stella spiega una regoletta. A fine capitolo c'è una gara che ripassa tutto e regala una coccarda.</p>
       </section>
       <section class="card">
         <h3>Accento della voce</h3>
@@ -266,8 +304,9 @@
 
   /* ---------------- Lezione ---------------- */
   function startLesson(lesson) {
-    const plan = KIDS.planLesson(S, lesson, items, tick());
-    const steps = KIDS.buildSteps(plan, S, byId, rng);
+    const plan = KIDS.planLesson(S, lesson, items, tick(), rng);
+    const challenge = !!(lesson && lesson.challenge);
+    const steps = KIDS.buildSteps(plan, S, byId, rng, { firstOfUnit, challenge, unit: challenge ? lesson.u : null });
     if (!steps.length) return;
     run = { lesson, plan, steps, i: 0, graded: new Set(), answers: 0, ok: 0, again: {} };
     Voice.say(''); // sblocca la voce su iPhone dentro il tocco
@@ -410,6 +449,80 @@
         bind() { autoPlay(it); bindOptions(it); },
       };
     },
+    tip(st) {
+      const u = unitById[st.u];
+      return {
+        html: `<div class="kicker">Lo sapevi? 💡</div>
+          <div class="q"><div class="mascot-talk"><span class="m" aria-hidden="true">🐴</span><div class="bubble">Stella ti spiega: <b>${esc(u.tip.title)}</b></div></div></div>
+          <div class="a">${tipCard(u)}</div>`,
+        foot: '<button class="btn go block" id="go">Ho capito!</button>',
+        bind() { setTimeout(() => Voice.say(u.tip.ex[0][0]), 400); $('#go').addEventListener('click', () => { sfx.hop(); next(); }); },
+      };
+    },
+    truefalse(st) {
+      const it = byId[st.id];
+      const other = distractors(it, 1)[0];
+      const shown = !other || rng() < 0.5 ? it : other;
+      return {
+        html: `<div class="kicker">Giusto o sbagliato?</div>
+          <div class="q"><div class="pic-lg" aria-hidden="true">${it.em}</div>
+          <div class="en-lg" lang="en">${esc(shown.en)}?</div>
+          <div class="audio-row"><button class="audio-btn" data-say="${esc(shown.en)}">${ICON.speaker}Ascolta</button></div></div>
+          <div class="a"><p class="say">La parola va bene con la figura?</p>
+          <div class="options yesno"><button class="opt" data-yes="1">👍 Sì</button><button class="opt" data-yes="0">👎 No</button></div></div>`,
+        bind() {
+          setTimeout(() => Voice.say(shown.en), 300);
+          $$('#ex [data-yes]').forEach((b) => b.addEventListener('click', () => {
+            if (run.settled) return;
+            const ok = (b.dataset.yes === '1') === (shown.id === it.id);
+            b.classList.add(ok ? 'right' : 'wrong');
+            if (!ok) $(`#ex [data-yes="${b.dataset.yes === '1' ? '0' : '1'}"]`).classList.add('right');
+            settle(it, ok, shown.id === it.id ? '' : `<span lang="en">${esc(shown.en)}</span> vuol dire ${esc(shown.it)}.`);
+          }));
+        },
+      };
+    },
+    count(st) {
+      const it = byId[st.id];
+      const pic = pick(KIDS.COUNT_PICS);
+      const opts = shuffle([it, ...KIDS.countChoices(it, items, rng)]);
+      return {
+        html: `<div class="kicker">How many? Quanti sono?</div>
+          <div class="q"><div class="count-grid ${it.num > 10 ? 'many' : ''}" aria-label="${it.num} figure">${Array.from({ length: it.num }, () => `<span aria-hidden="true">${pic}</span>`).join('')}</div></div>
+          <div class="a"><div class="options">${opts.map((o) => `<button class="opt" lang="en" data-id="${o.id}">${esc(o.en)}</button>`).join('')}</div></div>`,
+        bind() { setTimeout(() => Voice.say('How many?'), 300); bindOptions(it); },
+      };
+    },
+    gap(st) {
+      const it = byId[st.id];
+      const words = SRS.tiles(it.en);
+      const k = KIDS.gapIndex(it.en);
+      const answer = words[k];
+      const pool = [];
+      items.forEach((x) => SRS.tiles(x.en).forEach((w) => {
+        const lw = w.toLowerCase();
+        if (lw !== answer.toLowerCase() && w.length >= 3 && !pool.includes(lw)) pool.push(lw);
+      }));
+      const opts = shuffle([answer.toLowerCase(), ...shuffle(pool).slice(0, 2)]);
+      const shown = words.map((w, i) => (i === k ? '<span class="blank">?</span>' : esc(['I', 'Babi', 'Stella', 'Fiocco'].includes(w) ? w : (i === 0 ? w : w.toLowerCase())))).join(' ');
+      return {
+        html: `<div class="kicker">Completa la frase</div>
+          <div class="q"><div class="pic-lg" aria-hidden="true">${it.em}</div>
+          <div class="it-md">${esc(it.it)}</div>
+          <div class="gap-line" lang="en">${shown}</div></div>
+          <div class="a"><div class="options">${opts.map((w) => `<button class="opt" lang="en" data-word="${esc(w)}">${esc(w)}</button>`).join('')}</div></div>`,
+        bind() {
+          $$('#ex [data-word]').forEach((b) => b.addEventListener('click', () => {
+            if (run.settled) return;
+            const ok = b.dataset.word === answer.toLowerCase();
+            b.classList.add(ok ? 'right' : 'wrong');
+            if (!ok) { const r = $$('#ex [data-word]').find((x) => x.dataset.word === answer.toLowerCase()); if (r) r.classList.add('right'); }
+            const blank = $('#ex .blank'); if (blank) { blank.textContent = answer.toLowerCase(); blank.classList.add('filled'); }
+            settle(it, ok);
+          }));
+        },
+      };
+    },
     spell(st) { return tileStep(byId[st.id], KIDS.letterTiles(byId[st.id].en, rng), '', 'Metti in ordine le lettere'); },
     build(st) {
       const it = byId[st.id];
@@ -460,7 +573,7 @@
   /** Tessere da mettere in ordine: lettere per compitare, parole per le frasi. */
   function tileStep(it, pieces, joiner, title) {
     const chosen = [];
-    const label = (w) => (joiner ? (['I', 'Babi'].includes(w) ? w : w.toLowerCase()) : w);
+    const label = (w) => (joiner ? (['I', 'Babi', 'Stella', 'Fiocco'].includes(w) ? w : w.toLowerCase()) : w);
     return {
       html: `<div class="kicker">${title}</div>
         <div class="q"><div class="pic-lg" aria-hidden="true">${it.em}</div>
@@ -495,29 +608,43 @@
   function finishLesson() {
     const r = run; run = null;
     const st = KIDS.stars(r.answers, r.ok);
-    let sticker = null;
-    if (r.lesson) {
+    let sticker = null, rosette = null, newLevel = null;
+    const prevUnlocked = KIDS.unlockedCount(S, lessons);
+    if (r.lesson && r.lesson.challenge) {
+      const before = S.rosettes[r.lesson.u];
+      if (!before) rosette = unitById[r.lesson.u];
+      S.rosettes[r.lesson.u] = Math.max(before || 0, st);
+    } else if (r.lesson) {
       const before = S.done[r.lesson.n];
       if (!before && S.stickers < KIDS.STICKERS.length) { sticker = KIDS.STICKERS[S.stickers]; S.stickers += 1; }
       S.done[r.lesson.n] = Math.max(before || 0, st);
+      const nowUnlocked = KIDS.unlockedCount(S, lessons);
+      const opened = lessons[nowUnlocked - 1];
+      if (nowUnlocked > prevUnlocked && opened && !S.done[opened.n] && lessonLevel(opened) > lessonLevel(r.lesson)) newLevel = levelByLv[lessonLevel(opened)];
     }
     S.tick = tick() + 1;
     S.lessonsPlayed = (S.lessonsPlayed || 0) + 1;
     save();
     sfx.win();
     const nl = allDone() ? null : nextLesson();
+    const race = r.lesson && !r.lesson.challenge && KIDS.challengeOpen(S, lessons, r.lesson.u) && !S.rosettes[r.lesson.u] ? challengeByUnit[r.lesson.u] : null;
+    const title = r.lesson && r.lesson.challenge ? `Gara <span>finita!</span>` : r.lesson ? `Lezione ${r.lesson.n} <span>finita!</span>` : 'Gioco libero <span>finito!</span>';
     const confetti = Array.from({ length: 18 }, (_, i) =>
       `<span style="left:${(i * 5.7) % 100}%;animation-duration:${2.6 + (i % 5) * 0.6}s;animation-delay:${(i % 6) * 0.2}s">${['🥕', '⭐', '🐰', '🐴', '💗', '🌸'][i % 6]}</span>`).join('');
     app.innerHTML = `<div class="confetti" aria-hidden="true">${confetti}</div>
       <div class="wrap done">
-        <h1>${r.lesson ? `Lezione ${r.lesson.n} <span>finita!</span>` : 'Gioco libero <span>finito!</span>'}</h1>
+        <h1>${title}</h1>
         <div class="big-stars" aria-label="${st} stelle su 3">${starsHtml(st)}</div>
         <p class="lead">${st === 3 ? 'Perfetta! Stella la pony è fierissima di te.' : st === 2 ? 'Bravissima! Fiocco salta di gioia.' : 'Brava! Le parole difficili torneranno presto, così le impari.'}</p>
+        ${rosette ? `<div class="sticker-won"><b>Hai vinto la coccarda!</b><div class="s" aria-hidden="true">🏵️</div><span>${rosette.em} ${esc(rosette.title)}</span></div>` : ''}
         ${sticker ? `<div class="sticker-won"><b>Nuova figurina!</b><div class="s" aria-hidden="true">${sticker}</div></div>` : ''}
+        ${newLevel ? `<div class="level-up"><span aria-hidden="true">${newLevel.em}</span><div><small>Nuovo livello sbloccato!</small><b>${esc(newLevel.title)}</b></div></div>` : ''}
+        ${race ? `<button class="btn gold block" id="race">🏵️ Fai la gara del capitolo</button>` : ''}
         ${nl ? `<button class="btn go block" id="nextLesson">Lezione ${nl.n}, andiamo!</button>` : ''}
         <button class="btn soft block" id="back">Torna al percorso</button>
       </div>`;
     const n = $('#nextLesson'); if (n) n.addEventListener('click', () => startLesson(nl));
+    const rc = $('#race'); if (rc) rc.addEventListener('click', () => startLesson(race));
     $('#back').addEventListener('click', () => { tab = 'path'; render(); scrollTo(0, 0); });
   }
 

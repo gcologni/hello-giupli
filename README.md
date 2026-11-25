@@ -23,6 +23,9 @@ I progressi restano sul telefono. Per spostarli su un altro telefono: Impostazio
 Nella cartella `babi/` c'è la versione per bambini, a tema cavalli e coniglietti: `gcologni.github.io/hello-giupli/babi/`.
 
 - Nessuna lezione giornaliera: un percorso di lezioni brevi da 2-4 parole, da fare quante volte si vuole, una dopo l'altra.
+- Tre livelli: il prato (parole di base), il bosco incantato (più parole, numeri fino a 20, domande), il castello dei pony (prime regole con frasi: colore prima del nome, plurali, can, in/on/under, my/his/her).
+- Ogni capitolo si apre con una regoletta di Stella, con esempi da ascoltare. A fine capitolo una gara ripassa tutto e regala una coccarda; non blocca il percorso.
+- Esercizi: ascolta e scegli, figura e parola, giusto o sbagliato, quanti sono (contare in inglese), coppie, lettere in ordine, frase in ordine, completa la frase.
 - Il ripasso misura il tempo in lezioni fatte, non in giorni. Ogni lezione ripassa 2-4 parole vecchie.
 - Esercizi con figure e voce, lettere da mettere in ordine per le parole corte. Stelline e una figurina per ogni lezione nuova.
 - Progressi e cache separati da quelli di Giupli: si possono installare tutte e due sullo stesso telefono.

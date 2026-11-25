@@ -8,13 +8,20 @@
   const LESSON_SIZE = 4;
   const MAX_REVIEW = 4;
   const MIN_REVIEW = 2;
-  const STICKERS = ['🐴', '🐰', '🦄', '🥕', '🐇', '🌈', '🎠', '🍎', '⭐', '🐣', '🦋', '🌸', '🍓', '🎀', '🐱', '🐶', '🐑', '🐥', '🌻', '🍦', '🧁', '🐞', '🦔', '🐿️', '🐢', '🦊', '🐼', '🐨', '🦒', '👑'];
+  const CHALLENGE_SIZE = 8;
+  const STICKERS = ['🐴', '🐰', '🦄', '🥕', '🐇', '🌈', '🎠', '🍎', '⭐', '🐣', '🦋', '🌸', '🍓', '🎀', '🐱', '🐶', '🐑', '🐥', '🌻', '🍦',
+    '🧁', '🐞', '🦔', '🐿️', '🐢', '🦊', '🐼', '🐨', '🦒', '👑', '🐎', '🦢', '🦩', '🐠', '🐬', '🦭', '🐧', '🦉', '🐝', '🍄',
+    '🌷', '🍒', '🍉', '🍩', '🍭', '🎈', '🪁', '🎨', '🧸', '🪅', '💎', '🔮', '🏰', '🌙', '☀️', '❄️', '🍀', '🐉', '🌺', '🏆'];
+  const COUNT_PICS = ['🐰', '🐴', '🥕', '🍎', '⭐', '🦋', '🌸', '🐣', '🍓', '🎈'];
+  // Parole troppo piccole per il "completa la frase": si nasconde una parola che conta.
+  const GAP_SKIP = new Set(['a', 'the', 'is', 'i', 'am', 'my', 'to', 'in', 'on', 'it', 'you', 'do', 'can', 'his', 'her', 'with', 'are', 'of', 'this']);
 
-  /** Divide ogni capitolo in lezioni da 3-4 novità, il più possibile uguali. */
+  /** Divide ogni capitolo in lezioni da 2-4 novità, il più possibile uguali. Numerate dall'1, in ordine. */
   function makeLessons(units, items) {
     const out = [];
     units.forEach((u) => {
       const list = items.filter((i) => i.u === u.id);
+      if (!list.length) return;
       const n = Math.ceil(list.length / LESSON_SIZE);
       const base = Math.floor(list.length / n), extra = list.length % n;
       let at = 0;
@@ -27,6 +34,13 @@
     return out;
   }
 
+  /** Una gara per capitolo: ripassa tutto il capitolo e regala una coccarda. Non blocca il percorso. */
+  function makeChallenges(units, items) {
+    return units
+      .map((u) => ({ id: 'sfida-' + u.id, u: u.id, ids: items.filter((i) => i.u === u.id).map((i) => i.id), challenge: true }))
+      .filter((c) => c.ids.length);
+  }
+
   /** Lezioni giocabili: tutte quelle finite più la prossima. */
   function unlockedCount(state, lessons) {
     const done = state.done || {};
@@ -35,9 +49,19 @@
     return Math.min(lessons.length, k + 1);
   }
 
+  /** La gara si apre quando tutte le lezioni del capitolo sono finite. */
+  function challengeOpen(state, lessons, unitId) {
+    const done = state.done || {};
+    const list = lessons.filter((l) => l.u === unitId);
+    return list.length > 0 && list.every((l) => done[l.n]);
+  }
+
   /** Novità della lezione più qualche parola vecchia da ripassare. Rigiocare una lezione la ripassa tutta. */
-  function planLesson(state, lesson, items, tick) {
+  function planLesson(state, lesson, items, tick, rng = Math.random) {
     const cards = state.cards || {};
+    if (lesson && lesson.challenge) {
+      return { fresh: [], review: SRS.shuffle(lesson.ids.slice(), rng).slice(0, CHALLENGE_SIZE) };
+    }
     const fresh = lesson ? lesson.ids.filter((id) => !cards[id]) : [];
     const replay = lesson ? lesson.ids.filter((id) => cards[id]) : [];
     const inLesson = (id) => !!lesson && lesson.ids.includes(id);
@@ -59,16 +83,35 @@
 
   const canSpell = (item) => !item.k && /^[a-z]{3,6}$/i.test(item.en);
 
-  /** Prima si riconosce con le figure, poi si sceglie la parola, poi si compone con le lettere. */
+  /** Indice della parola da nascondere nel "completa la frase": la più lunga che conta, o -1. */
+  function gapIndex(en) {
+    const words = SRS.tiles(en);
+    if (words.length < 2) return -1;
+    let best = -1;
+    words.forEach((w, i) => {
+      if (GAP_SKIP.has(w.toLowerCase())) return;
+      if (best < 0 || w.length > words[best].length) best = i;
+    });
+    return best;
+  }
+  const canGap = (item) => item.k === 'p' && gapIndex(item.en) >= 0;
+
+  /** Esercizio adatto a quanto bene Babi conosce la parola: prima riconosce, poi sceglie, poi scrive e completa. */
   function exerciseFor(item, box, rng) {
-    if (item.k === 'p') return box >= 2 ? 'build' : 'listenP';
+    if (item.k === 'p') {
+      if (box <= 1) return 'listenP';
+      return canGap(item) && rng() < 0.5 ? 'gap' : 'build';
+    }
+    if (item.num && box >= 1 && rng() < 0.5) return 'count';
     if (box <= 1) return rng() < 0.5 ? 'listen' : 'en2pic';
-    if (box === 2) return 'pic2en';
-    return canSpell(item) && rng() < 0.6 ? 'spell' : 'pic2en';
+    if (box === 2) return rng() < 0.6 ? 'pic2en' : 'truefalse';
+    const r = rng();
+    if (canSpell(item) && r < 0.45) return 'spell';
+    return r < 0.75 ? 'pic2en' : 'truefalse';
   }
   const easyFor = (item) => (item.k === 'p' ? 'listenP' : 'listen');
 
-  const stepIds = (s) => (s.ids ? s.ids : [s.id]);
+  const stepIds = (s) => (s.ids ? s.ids : s.id ? [s.id] : []);
   const clash = (a, b) => !!a && !!b && b.t !== 'intro' && a.t !== 'match' && b.t !== 'match' && stepIds(a).some((id) => stepIds(b).includes(id));
   const hasClash = (seq, head) => seq.some((st, i) => clash(st, i === 0 ? head : seq[i - 1]));
   function spreadOut(tail, head, rng) {
@@ -76,17 +119,28 @@
     return tail;
   }
 
-  function buildSteps(plan, state, byId, rng) {
+  /**
+   * Passi della lezione.
+   * opts.firstOfUnit: id delle prime parole di ogni capitolo; prima di presentarle arriva la regoletta del capitolo.
+   * opts.challenge: gara del capitolo; si apre con la regoletta e usa esercizi più difficili.
+   */
+  function buildSteps(plan, state, byId, rng, opts = {}) {
     const cards = state.cards || {};
     const fresh = plan.fresh.map((id) => byId[id]);
     const steps = [];
+    if (opts.challenge && opts.unit) steps.push({ t: 'tip', u: opts.unit });
     fresh.forEach((it, i) => {
+      if (opts.firstOfUnit && opts.firstOfUnit.has(it.id)) steps.push({ t: 'tip', u: it.u });
       steps.push({ t: 'intro', id: it.id });
       steps.push({ t: easyFor(it), id: it.id });
       if (i > 0) steps.push({ t: fresh[i - 1].k === 'p' ? 'listenP' : 'en2pic', id: fresh[i - 1].id });
     });
     const freshWords = fresh.filter((x) => x.k !== 'p');
-    const mixed = plan.review.map((id) => ({ t: exerciseFor(byId[id], (cards[id] && cards[id].box) || 0, rng), id }));
+    const boost = opts.challenge ? 2 : 0;
+    const mixed = plan.review.map((id) => {
+      const box = (cards[id] && cards[id].box) || 0;
+      return { t: exerciseFor(byId[id], Math.max(box, boost), rng), id };
+    });
     fresh.forEach((it) => mixed.push({ t: it.k === 'p' ? 'build' : 'pic2en', id: it.id }));
     const reviewWords = plan.review.filter((id) => byId[id].k !== 'p');
     if (freshWords.length >= 3) mixed.push({ t: 'match', ids: freshWords.slice(0, 4).map((x) => x.id) });
@@ -111,5 +165,19 @@
     return out;
   }
 
-  return { LESSON_SIZE, STICKERS, makeLessons, unlockedCount, planLesson, canSpell, exerciseFor, easyFor, buildSteps, stars, letterTiles };
+  /** Per "Quanti sono?": due numeri vicini a quello giusto, presi fra i numeri del corso. */
+  function countChoices(item, items, rng) {
+    const others = items.filter((x) => x.num && x.id !== item.id);
+    const near = SRS.shuffle(others.slice(), rng).sort((a, b) => Math.abs(a.num - item.num) - Math.abs(b.num - item.num)).slice(0, 4);
+    return SRS.shuffle(near, rng).slice(0, 2);
+  }
+
+  /** Livello di una lezione e se è l'ultima del suo livello. */
+  function levelOf(unitsById, lesson) { return (unitsById[lesson.u] && unitsById[lesson.u].lv) || 1; }
+
+  return {
+    LESSON_SIZE, CHALLENGE_SIZE, STICKERS, COUNT_PICS,
+    makeLessons, makeChallenges, unlockedCount, challengeOpen, planLesson, canSpell, gapIndex, canGap,
+    exerciseFor, easyFor, buildSteps, stars, letterTiles, countChoices, levelOf,
+  };
 });
