@@ -61,11 +61,11 @@ test('giorni difficili: con meno del 70% di risposte giuste le novità scendono 
   assert.equal(SRS.planSession(state, items, T).fresh.length, 3);
 });
 
-test('al massimo 2 frasi nuove al giorno', () => {
+test('al massimo 3 frasi nuove al giorno', () => {
   const cards = {};
   items.filter((i) => i.k !== 'p').forEach((it) => { cards[it.id] = { box: 7, due: T + 30 }; });
   const plan = SRS.planSession({ cards, days: {} }, items, T);
-  assert.ok(plan.fresh.length <= 2);
+  assert.ok(plan.fresh.length <= 3);
   plan.fresh.forEach((id) => assert.equal(byId[id].k, 'p'));
 });
 
@@ -157,4 +157,47 @@ test('missedDay: propone il giorno saltato più recente, al massimo 7 giorni ind
 test('un giorno recuperato ricuce i giorni di fila', () => {
   const days = { [T - 1]: { done: true, recovered: true }, [T - 2]: { done: true }, [T]: { done: true } };
   assert.equal(SRS.streak({ days }, T), 3);
+});
+
+test('livello 2: i capitoli del livello 1 restano identici e in testa al corso', () => {
+  const { levels } = require('../data.js');
+  assert.deepEqual(levels.map((l) => l.lv), [1, 2]);
+  const lv = Object.fromEntries(units.map((u) => [u.id, u.lv]));
+  const firstLv2 = items.findIndex((i) => lv[i.u] === 2);
+  assert.equal(firstLv2, 98, 'le 98 voci del livello 1 vengono prima');
+  assert.ok(items.slice(firstLv2).every((i) => lv[i.u] === 2));
+  units.forEach((u) => assert.ok(u.tip && u.tip.title && u.tip.text && u.tip.ex.length, 'regoletta mancante: ' + u.id));
+});
+
+test('la regoletta arriva prima della prima voce di un capitolo nuovo', () => {
+  const firstOfUnit = new Set(units.map((u) => items.find((i) => i.u === u.id).id));
+  const state = { cards: {}, days: {} };
+  const steps = SRS.buildSteps(SRS.planSession(state, items, T), state, byId, seeded(2), { firstOfUnit });
+  assert.deepEqual(steps[0], { t: 'tip', u: 'saluti' });
+  assert.equal(steps[1].t, 'intro');
+});
+
+test('esercizi più difficili quando la voce è ben ricordata', () => {
+  const r = seeded(9);
+  const phrase = items.find((i) => i.id === 'p-i-would-like-the-fish');
+  for (let k = 0; k < 60; k++) {
+    assert.equal(SRS.exerciseFor(phrase, 1, r), 'listenP');
+    assert.equal(SRS.exerciseFor(phrase, 2, r), 'build');
+    assert.ok(['gap', 'buildX'].includes(SRS.exerciseFor(phrase, 3, r)));
+    assert.ok(['dictation', 'gap', 'buildX'].includes(SRS.exerciseFor(phrase, 5, r)));
+    assert.ok(['dictation', 'type'].includes(SRS.exerciseFor(byId.fish, 6, r)));
+  }
+  items.filter((i) => i.k === 'p' && i.en.split(' ').length >= 2).forEach((i) => assert.ok(SRS.canGap(i), 'frase senza parola da completare: ' + i.en));
+});
+
+test('completa la frase nasconde la parola che conta', () => {
+  assert.equal(SRS.tiles('I would like the fish')[SRS.gapIndex('I would like the fish')], 'would');
+  assert.equal(SRS.tiles('Turn left')[SRS.gapIndex('Turn left')], 'Turn');
+  assert.equal(SRS.gapIndex('hello'), -1);
+});
+
+test('dettato: sulle frasi lunghe perdona due errori di battitura', () => {
+  assert.equal(SRS.checkTyped('a table for two pleas', 'A table for two, please'), 'close');
+  assert.equal(SRS.checkTyped('a tabel for tow please', 'A table for two, please'), 'no');
+  assert.equal(SRS.checkTyped('I would lik the fsh', 'I would like the fish'), 'close');
 });

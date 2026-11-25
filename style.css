@@ -262,6 +262,32 @@ textarea { width: 100%; min-height: 84px; border-radius: 14px; border: 2px solid
 .msg.err { color: var(--lilac); }
 .danger { color: #b0284f; }
 
+/* ---------- Livelli e regolette ---------- */
+.level-banner { display: flex; align-items: center; gap: 14px; margin-top: 8px; padding: 14px 18px; border-radius: 22px; color: #fff; box-shadow: 0 10px 24px -16px rgba(140,29,79,.6); }
+.level-banner.lv1 { background: linear-gradient(120deg, #ff8db6, var(--pink)); }
+.level-banner.lv2 { background: linear-gradient(120deg, #a07ad8, var(--lilac)); }
+.level-banner.closed { opacity: .75; }
+.level-banner .le { font-size: 36px; line-height: 1; }
+.level-banner small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .9; }
+.level-banner b { display: block; font: italic 700 24px/1.1 var(--display); }
+.level-banner em { display: block; font-style: normal; font-size: 14px; opacity: .92; margin-top: 2px; }
+.tip-card { background: var(--card); border-radius: 22px; padding: 16px; text-align: left; display: grid; gap: 10px; box-shadow: 0 10px 24px -16px rgba(140,29,79,.5); }
+.tip-head { display: flex; align-items: center; gap: 10px; color: var(--berry); }
+.tip-head span { font-size: 28px; }
+.tip-head b { font: italic 700 24px/1.1 var(--display); }
+.tip-card p { margin: 0; font-size: 17px; }
+.tip-ex { display: grid; gap: 8px; }
+.ex-row { border: 0; border-radius: 14px; background: var(--pink-soft); padding: 10px 12px; display: grid; grid-template-columns: 22px auto 1fr; gap: 10px; align-items: center; text-align: left; color: var(--berry); }
+.ex-row svg { width: 20px; height: 20px; fill: currentColor; }
+.ex-row b { font: italic 700 20px var(--display); color: var(--ink); }
+.ex-row span { font-size: 15px; color: var(--muted); }
+.rules { background: var(--lilac-soft); border-radius: 20px; padding: 2px 14px; margin-top: 12px; }
+.rules summary { cursor: pointer; padding: 12px 0; font-weight: 700; color: var(--lilac); }
+.rules-list { display: grid; gap: 12px; padding-bottom: 14px; }
+.gap-line { font: italic 700 30px/1.3 var(--display); color: var(--ink); }
+.gap-line .blank { display: inline-block; min-width: 2.6em; border-bottom: 3px solid var(--pink); color: var(--pink); }
+.gap-line .blank.filled { color: var(--mint); border-color: var(--mint); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -16,6 +16,9 @@ I progressi restano sul telefono. Per spostarli su un altro telefono: Impostazio
 - **Ripasso a intervalli** (`srs.js`): ogni parola sale di livello quando la risposta è giusta e torna dopo 1, 2, 4, 7, 14, 30 e 60 giorni. Un errore la fa scendere di due livelli.
 - **Esercizi in ordine di difficoltà:** ascolta e scegli, significato, inglese da scegliere, coppie, scrittura. Le frasi si ascoltano e poi si compongono.
 - **Ogni parola** ha immagine, voce inglese (anche lenta), pronuncia scritta all'italiana e un trucco per ricordarla.
+- **Due livelli.** Livello 1, le basi: 98 parole e frasi. Livello 2, in giro per il mondo: 96 voci, soprattutto frasi, su essere e avere, orari, ristorante, shopping, strada, meteo, passato, medico e conversazione.
+- **Regolette:** prima della prima voce di ogni capitolo arriva una regola spiegata con esempi da ascoltare. Si rileggono in "Le mie parole".
+- **Esercizi più difficili per ciò che ricorda bene:** completa la frase, componi la frase con parole in più, dettato (ascolta e scrivi).
 - **Giorni saltati:** un giorno saltato negli ultimi 7 si recupera con un ripasso di 5 minuti, uno al giorno. Nella settimana compare come un cuore più chiaro.
 
 ## Hello Babi

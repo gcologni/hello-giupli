@@ -1,9 +1,13 @@
 /* Hello Giupli: interfaccia. La logica del ripasso sta in srs.js, il corso in data.js. */
 (() => {
   'use strict';
-  const { units, items } = window.COURSE;
+  const { levels, units, items } = window.COURSE;
   const SRS = window.SRS;
   const byId = Object.fromEntries(items.map((i) => [i.id, i]));
+  const unitById = Object.fromEntries(units.map((u) => [u.id, u]));
+  const levelByLv = Object.fromEntries(levels.map((l) => [l.lv, l]));
+  // Prima voce di ogni capitolo: prima di presentarla arriva la regoletta del capitolo.
+  const firstOfUnit = new Set(units.map((u) => (items.find((i) => i.u === u.id) || {}).id).filter(Boolean));
   const KEY = 'hello-giupli-v1';
   const app = document.getElementById('app');
   const rng = Math.random;
@@ -205,13 +209,23 @@
       : first ? 'Ogni lezione fatta accende un cuore.' : 'Bentornata! Riprendiamo da dove eri rimasta.';
 
     const nextUnit = plan.fresh.length ? byId[plan.fresh[0]].u : null;
+    let lastLv = null;
     const path = units.map((u) => {
       const list = items.filter((x) => x.u === u.id);
       const seen = list.filter((x) => S.cards[x.id]).length;
       const lrn = list.filter((x) => SRS.isLearned(S.cards[x.id])).length;
       const cls = lrn === list.length ? 'done' : (seen > 0 || u.id === nextUnit) ? 'now' : 'locked';
       const badge = cls === 'done' ? 'Imparato' : cls === 'now' ? 'In corso' : '';
-      return `<div class="unit ${cls}"><div class="ue" aria-hidden="true">${u.em}</div>
+      let head = '';
+      if (u.lv !== lastLv) {
+        const lv = levelByLv[u.lv];
+        const lvItems = items.filter((x) => unitById[x.u].lv === u.lv);
+        const started = lvItems.some((x) => S.cards[x.id]);
+        head = `<div class="level-banner lv${u.lv} ${started || u.lv === 1 ? '' : 'closed'}"><span class="le" aria-hidden="true">${lv.em}</span>
+          <div><small>Livello ${u.lv}</small><b>${esc(lv.title)}</b>${started || u.lv === 1 ? '' : `<em>Arriva dopo il livello ${u.lv - 1}: ${lvItems.length} parole e frasi nuove</em>`}</div></div>`;
+        lastLv = u.lv;
+      }
+      return head + `<div class="unit ${cls}"><div class="ue" aria-hidden="true">${u.em}</div>
         <div class="ut"><b>${esc(u.title)}</b><span>${esc(u.sub)}</span><div class="bar"><i style="width:${Math.round((lrn / list.length) * 100)}%"></i></div></div>
         <div class="badge">${badge}</div></div>`;
     }).join('');
@@ -256,6 +270,7 @@
     }).join('');
     app.innerHTML = `<div class="wrap screen">
       <header><div class="eyebrow">Il tuo dizionario</div><h1 class="hello">Le mie <span>parole</span></h1>
+      ${(() => { const seen = units.filter((u) => items.some((x) => x.u === u.id && S.cards[x.id])); return seen.length ? `<details class="rules"><summary>Le regolette (${seen.length})</summary><div class="rules-list">${seen.map(tipCard).join('')}</div></details>` : ''; })()}
       <p class="lead">I cuori mostrano quanto le ricordi. Tocca l'altoparlante per riascoltarle.</p></header>
       ${groups ? `<section class="learned-list">${groups}</section>` : `<div class="empty"><div class="e" aria-hidden="true">🌱</div><p>Qui compariranno le parole che impari. Fai la prima lezione dalla scheda Oggi.</p></div>`}
     </div>${tabbar()}`;
@@ -331,7 +346,7 @@
     const t = today();
     let plan = SRS.planSession(S, items, t, { mode: mode === 'recover' ? 'extra' : mode });
     if (!plan.fresh.length && !plan.review.length) plan = SRS.planSession(S, items, t, { mode: 'extra' });
-    const steps = SRS.buildSteps(plan, S, byId, rng);
+    const steps = SRS.buildSteps(plan, S, byId, rng, { firstOfUnit });
     run = { mode, plan, steps, i: 0, graded: new Set(), answers: 0, ok: 0, again: {}, start: Date.now(), day: t, recoverDay };
     Voice.say(''); // sblocca la voce su iPhone dentro il tocco
     renderStep();
@@ -426,7 +441,133 @@
     }));
   }
 
+  /** Regoletta del capitolo con esempi da ascoltare. */
+  function tipCard(u) {
+    const t = u.tip;
+    return `<div class="tip-card"><div class="tip-head"><span aria-hidden="true">${u.em}</span><b>${esc(t.title)}</b></div>
+      <p>${esc(t.text)}</p>
+      <div class="tip-ex">${t.ex.map(([en, it]) => `<button class="ex-row" data-say="${esc(en)}">${ICON.speaker}<b lang="en">${esc(en)}</b><span>${esc(it)}</span></button>`).join('')}</div></div>`;
+  }
+
+  /** Tessere per comporre una frase. extra: parole in più da scartare. */
+  function tilesStep(it, extra, title) {
+    const words = SRS.tiles(it.en);
+    const pieces = words.concat(extra);
+    let order = shuffle(pieces.map((w, i) => i));
+    if (!extra.length && order.every((v, i) => v === i) && pieces.length > 1) order = order.reverse();
+    const chosen = [];
+    const label = (w) => (['I', 'Giupli', 'Italy', 'Italian', 'English', 'London'].includes(w) ? w : w.toLowerCase());
+    return {
+      html: `<div class="kicker">${title}</div>
+        <div class="emoji-lg" aria-hidden="true">${it.em}</div>
+        <div class="it-lg">${esc(it.it)}</div>
+        ${extra.length ? '<p class="say">Attenta: ci sono parole in più!</p>' : ''}
+        <div class="build-ans" id="ans" aria-label="La tua frase"></div>
+        <div class="build-pool" id="pool">${order.map((i) => `<button class="tile" data-i="${i}" lang="en">${esc(label(pieces[i]))}</button>`).join('')}</div>`,
+      foot: `<button class="btn primary block" id="check" disabled>Controlla</button>`,
+      bind() {
+        const ans = $('#ans'), pool = $('#pool'), check = $('#check');
+        const draw = () => {
+          ans.innerHTML = chosen.map((i, k) => `<button class="tile" data-k="${k}" lang="en">${esc(label(pieces[i]))}</button>`).join('');
+          $$('.tile', pool).forEach((b) => b.classList.toggle('used', chosen.includes(+b.dataset.i)));
+          check.disabled = extra.length ? chosen.length === 0 : chosen.length !== words.length;
+          $$('.tile', ans).forEach((b) => b.addEventListener('click', () => { if (run.settled) return; chosen.splice(+b.dataset.k, 1); draw(); }));
+        };
+        $$('.tile', pool).forEach((b) => b.addEventListener('click', () => {
+          if (run.settled || chosen.includes(+b.dataset.i)) return;
+          chosen.push(+b.dataset.i); draw();
+        }));
+        check.addEventListener('click', () => {
+          const said = chosen.map((i) => pieces[i]).join(' ');
+          const ok = SRS.normalize(said) === SRS.normalize(it.en);
+          settle(it, ok, ok ? '' : `Hai composto: ${esc(said)}`);
+        });
+        draw();
+      },
+    };
+  }
+
+  /** Parole plausibili da aggiungere come trappola: prese dalle altre frasi, mai già presenti in questa. */
+  function extraWords(it, n) {
+    const own = new Set(SRS.tiles(it.en).map((w) => w.toLowerCase()));
+    const pool = [];
+    items.forEach((x) => { if (x.k === 'p' && x.id !== it.id) SRS.tiles(x.en).forEach((w) => { const lw = w.toLowerCase(); if (!own.has(lw) && !pool.includes(lw)) pool.push(lw); }); });
+    return shuffle(pool).slice(0, n);
+  }
+
   const STEPS = {
+    tip(st) {
+      const u = unitById[st.u];
+      return {
+        html: `<div class="kicker">Regoletta · ${esc(u.title)}</div>
+          <div class="emoji-xl" aria-hidden="true">💡</div>
+          ${tipCard(u)}`,
+        foot: '<button class="btn primary block" id="go">Ho capito</button>',
+        bind() { setTimeout(() => Voice.say(u.tip.ex[0][0]), 300); $('#go').addEventListener('click', next); },
+      };
+    },
+
+    buildX(st) { const it = byId[st.id]; return tilesStep(it, extraWords(it, 2), 'Componi la frase'); },
+
+    gap(st) {
+      const it = byId[st.id];
+      const words = SRS.tiles(it.en);
+      const k = SRS.gapIndex(it.en);
+      const answer = words[k].toLowerCase();
+      const pool = [];
+      items.forEach((x) => SRS.tiles(x.en).forEach((w) => { const lw = w.toLowerCase(); if (lw !== answer && w.length >= 3 && !pool.includes(lw)) pool.push(lw); }));
+      const opts = shuffle([answer, ...shuffle(pool).slice(0, 2)]);
+      const keepCase = (w, i) => (i === 0 || ['I', 'Italy', 'Italian', 'English', 'London', 'Giupli'].includes(w) ? w : w.toLowerCase());
+      const shown = words.map((w, i) => (i === k ? '<span class="blank">?</span>' : esc(keepCase(w, i)))).join(' ');
+      return {
+        html: `<div class="kicker">Completa la frase</div>
+          <div class="emoji-lg" aria-hidden="true">${it.em}</div>
+          <div class="it-lg">${esc(it.it)}</div>
+          <div class="gap-line" lang="en">${shown}</div>
+          <div class="options">${opts.map((w) => `<button class="opt en" lang="en" data-word="${esc(w)}">${esc(w)}</button>`).join('')}</div>`,
+        bind() {
+          $$('#ex [data-word]').forEach((b) => b.addEventListener('click', () => {
+            if (run.settled) return;
+            const ok = b.dataset.word === answer;
+            b.classList.add(ok ? 'right' : 'wrong');
+            if (!ok) { const r = $$('#ex [data-word]').find((x) => x.dataset.word === answer); if (r) r.classList.add('right'); }
+            const blank = $('#ex .blank'); if (blank) { blank.textContent = answer; blank.classList.add('filled'); }
+            settle(it, ok);
+          }));
+        },
+      };
+    },
+
+    dictation(st) {
+      const it = byId[st.id];
+      return {
+        html: `<div class="kicker">Dettato: ascolta e scrivi</div>
+          <button class="play-big" id="play" aria-label="Ascolta">${ICON.speaker}</button>
+          <button class="btn ghost" data-say="${esc(it.en)}" data-slow="1">🐢 Ascolta piano</button>
+          <div class="field"><input id="answer" lang="en" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Scrivi quello che senti, in inglese">
+          <div class="hint" id="hint">Scrivi in inglese quello che senti. Non servono maiuscole né punteggiatura.</div></div>`,
+        foot: `<div class="row-btns"><button class="btn soft" id="help">Aiutino</button><button class="btn soft" id="dunno">Non lo so</button></div>
+          <button class="btn primary block" id="check">Controlla</button>`,
+        bind() {
+          const inp = $('#answer');
+          const p = () => Voice.say(it.en);
+          $('#play').addEventListener('click', p); setTimeout(p, 300);
+          $('#help').addEventListener('click', () => { $('#hint').innerHTML = `Vuol dire: <b>${esc(it.it)}</b>`; Voice.say(it.en, true); });
+          $('#dunno').addEventListener('click', () => settle(it, false));
+          const check = () => {
+            if (run.settled) return;
+            if (!inp.value.trim()) { inp.focus(); return; }
+            const r = SRS.checkTyped(inp.value, it.en);
+            if (r === 'exact') settle(it, true);
+            else if (r === 'close') settle(it, true, `Quasi perfetto! Si scrive <b>${esc(it.en)}</b>.`);
+            else settle(it, false, `Hai scritto: ${esc(inp.value)}`);
+          };
+          $('#check').addEventListener('click', check);
+          inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+        },
+      };
+    },
+
     intro(st) {
       const it = byId[st.id];
       ensureCard(it.id);

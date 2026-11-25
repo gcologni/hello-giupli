@@ -11,7 +11,9 @@
   const MAX_BOX = INTERVALS.length - 1;
   const NEW_PER_DAY = 4;
   const MAX_REVIEW = 12;
-  const MAX_PHRASES_PER_DAY = 2;
+  const MAX_PHRASES_PER_DAY = 3;
+  // Parole troppo piccole per il "completa la frase": si nasconde una parola che conta.
+  const GAP_SKIP = new Set(['a', 'an', 'the', 'is', 'i', 'am', 'are', 'my', 'to', 'in', 'on', 'at', 'it', 'you', 'do', 'can', 'he', 'she', 'we', 'they', 'his', 'her', 'with', 'of', 'this', 'by', 'me']);
   const LEARNED_BOX = 3;
 
   function dayNumber(date) {
@@ -127,17 +129,41 @@
     return { review, fresh };
   }
 
-  /** Esercizio adatto a quanto bene è conosciuta una parola: prima si riconosce, poi si ricorda. */
+  /** Indice della parola da nascondere nel "completa la frase": la più lunga che conta, o -1. */
+  function gapIndex(en) {
+    const words = tiles(en);
+    if (words.length < 2) return -1;
+    let best = -1;
+    words.forEach((w, i) => {
+      if (GAP_SKIP.has(w.toLowerCase())) return;
+      if (best < 0 || w.length > words[best].length) best = i;
+    });
+    return best;
+  }
+  const canGap = (item) => item.k === 'p' && gapIndex(item.en) >= 0;
+
+  /**
+   * Esercizio adatto a quanto bene è conosciuta una parola: prima si riconosce, poi si ricorda, poi si produce.
+   * Frasi: ascolta → componi → completa o componi con parole in più → dettato.
+   * Parole: ascolta → scegli → scrivi → dettato.
+   */
   function exerciseFor(item, box, rng) {
-    if (item.k === 'p') return box >= 2 ? 'build' : 'listenP';
+    if (item.k === 'p') {
+      if (box <= 1) return 'listenP';
+      if (box === 2) return 'build';
+      const r = rng();
+      if (box === 3) return canGap(item) && r < 0.5 ? 'gap' : 'buildX';
+      return r < 0.4 ? 'dictation' : canGap(item) && r < 0.7 ? 'gap' : 'buildX';
+    }
     if (box <= 1) return rng() < 0.5 ? 'listen' : 'enIt';
     if (box === 2) return 'itEn';
     if (box === 3) return rng() < 0.5 ? 'itEn' : 'type';
-    return 'type';
+    if (box === 4) return 'type';
+    return rng() < 0.5 ? 'dictation' : 'type';
   }
   const easyFor = (item) => (item.k === 'p' ? 'listenP' : 'enIt');
 
-  const stepIds = (s) => (s.ids ? s.ids : [s.id]);
+  const stepIds = (s) => (s.ids ? s.ids : s.id ? [s.id] : []);
   // Il gioco delle coppie usa tante parole insieme: può stare vicino a un esercizio su una di esse.
   const clash = (a, b) => !!a && !!b && a.t !== 'match' && b.t !== 'match' && stepIds(a).some((id) => stepIds(b).includes(id));
 
@@ -149,14 +175,18 @@
     return tail;
   }
 
-  /** Sequenza degli esercizi della lezione. */
-  function buildSteps(plan, state, byId, rng) {
+  /**
+   * Sequenza degli esercizi della lezione.
+   * opts.firstOfUnit: id delle prime parole di ogni capitolo; prima di presentarle arriva la regoletta del capitolo.
+   */
+  function buildSteps(plan, state, byId, rng, opts = {}) {
     const cards = state.cards || {};
     const fresh = plan.fresh.map((id) => byId[id]);
     const steps = [];
 
     // 1. Presentazione di ogni novità, subito seguita da un esercizio facile.
     fresh.forEach((it, i) => {
+      if (opts.firstOfUnit && opts.firstOfUnit.has(it.id)) steps.push({ t: 'tip', u: it.u });
       steps.push({ t: 'intro', id: it.id });
       steps.push({ t: it.k === 'p' ? 'listenP' : 'listen', id: it.id });
       if (i > 0) steps.push({ t: easyFor(fresh[i - 1]), id: fresh[i - 1].id });
@@ -199,12 +229,13 @@
     return prev[n];
   }
 
-  /** 'exact', 'close' (un errore di battitura su parole di almeno 4 lettere) o 'no'. */
+  /** 'exact', 'close' (piccoli errori di battitura: 1 su parole di almeno 4 lettere, 2 sulle frasi lunghe) o 'no'. */
   function checkTyped(input, target) {
     const a = normalize(input), b = normalize(target);
     if (!a) return 'no';
     if (a === b) return 'exact';
-    if (b.length >= 4 && levenshtein(a, b) <= 1) return 'close';
+    const allowed = b.length >= 14 ? 2 : b.length >= 4 ? 1 : 0;
+    if (allowed && levenshtein(a, b) <= allowed) return 'close';
     return 'no';
   }
 
@@ -216,6 +247,6 @@
   return {
     INTERVALS, MAX_BOX, NEW_PER_DAY, MAX_REVIEW, LEARNED_BOX,
     dayNumber, shuffle, newCard, grade, mastery, isLearned, recentAccuracy, streak, firstDay, missedDay, forSpeech, RECOVER_WINDOW,
-    planSession, exerciseFor, easyFor, buildSteps, spreadOut, normalize, levenshtein, checkTyped, tiles,
+    planSession, exerciseFor, easyFor, buildSteps, spreadOut, normalize, levenshtein, checkTyped, tiles, gapIndex, canGap,
   };
 });

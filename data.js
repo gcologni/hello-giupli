@@ -2,21 +2,40 @@
    Campi: id, u (capitolo), en, it, pr (come si legge, all'italiana), em (immagine), hk (trucco per ricordare), k: 'p' per le frasi. */
 (function (root) {
   'use strict';
+  // Due livelli: le basi, poi in giro per il mondo (frasi vere e prime regole).
+  const levels = [
+    { lv: 1, title: 'Le basi', em: '🌱' },
+    { lv: 2, title: 'In giro per il mondo', em: '✈️' },
+  ];
+
+  // tip: la regoletta del capitolo, con esempi da ascoltare [inglese, italiano].
+  const T = (title, text, ex) => ({ title, text, ex });
   const units = [
-    { id: 'saluti', title: 'Ciao!', sub: 'I saluti', em: '👋' },
-    { id: 'persone', title: 'Io e te', sub: 'Le persone', em: '💑' },
-    { id: 'frasi1', title: 'Piacere!', sub: 'Le prime frasi', em: '💬' },
-    { id: 'famiglia', title: 'Famiglia', sub: 'Mamma, papà e gli altri', em: '🏡' },
-    { id: 'bar', title: 'Al bar', sub: 'Cose da bere e mangiare', em: '☕' },
-    { id: 'frasi2', title: 'Ordinare', sub: 'Frasi per il bar', em: '🧾' },
-    { id: 'numeri', title: 'Numeri', sub: 'Da 1 a 10', em: '🔢' },
-    { id: 'colori', title: 'Colori', sub: 'Il rosa e gli altri', em: '🎨' },
-    { id: 'casa', title: 'Casa', sub: 'Le cose di casa', em: '🏠' },
-    { id: 'frasi3', title: 'Aiuto!', sub: 'Frasi salva-vita', em: '🛟' },
-    { id: 'giorni', title: 'Giorni', sub: 'La settimana', em: '📅' },
-    { id: 'verbi', title: 'Azioni', sub: 'I primi verbi', em: '🏃‍♀️' },
-    { id: 'viaggio', title: 'In vacanza', sub: 'Viaggi e SPA', em: '🏖️' },
-    { id: 'frasi4', title: 'Amore', sub: 'Frasi del cuore', em: '💗' },
+    { id: 'saluti', lv: 1, title: 'Ciao!', sub: 'I saluti', em: '👋', tip: T('Hello e hi', 'Hello va bene sempre. Hi è più amichevole, si usa con amici e familiari.', [['hello', 'ciao'], ['goodbye', 'arrivederci']]) },
+    { id: 'persone', lv: 1, title: 'Io e te', sub: 'Le persone', em: '💑', tip: T('"I" sempre maiuscola', 'I vuol dire "io" e si scrive sempre con la maiuscola, anche in mezzo alla frase.', [['I love you', 'ti amo']]) },
+    { id: 'frasi1', lv: 1, title: 'Piacere!', sub: 'Le prime frasi', em: '💬', tip: T('Come stai?', 'A "How are you?" si risponde quasi sempre "I am fine, thank you".', [['How are you?', 'come stai?'], ['I am fine, thank you', 'sto bene, grazie']]) },
+    { id: 'famiglia', lv: 1, title: 'Famiglia', sub: 'Mamma, papà e gli altri', em: '🏡', tip: T('My non cambia', 'My vuol dire mio, mia, miei, mie: è sempre uguale.', [['my mother', 'mia madre'], ['my family', 'la mia famiglia']]) },
+    { id: 'bar', lv: 1, title: 'Al bar', sub: 'Cose da bere e mangiare', em: '☕', tip: T('A e an', 'Per dire "un, una" si usa a: a coffee. Davanti a una vocale diventa an: an apple.', [['a coffee', 'un caffè'], ['an apple', 'una mela']]) },
+    { id: 'frasi2', lv: 1, title: 'Ordinare', sub: 'Frasi per il bar', em: '🧾', tip: T('Please alla fine', 'Aggiungi please alla fine e ogni richiesta diventa gentile.', [['A coffee, please', 'un caffè, per favore'], ['Water, please', 'acqua, per favore']]) },
+    { id: 'numeri', lv: 1, title: 'Numeri', sub: 'Da 1 a 10', em: '🔢', tip: T('Contare', 'Dopo il 12, i numeri fino al 19 finiscono in "-teen": thirteen, fourteen...', [['one, two, three', 'uno, due, tre'], ['thirteen', 'tredici']]) },
+    { id: 'colori', lv: 1, title: 'Colori', sub: 'Il rosa e gli altri', em: '🎨', tip: T('Prima il colore', 'Il colore va prima del nome: a pink dress, mai "a dress pink".', [['a pink dress', 'un vestito rosa'], ['a red car', 'una macchina rossa']]) },
+    { id: 'casa', lv: 1, title: 'Casa', sub: 'Le cose di casa', em: '🏠', tip: T('The vale per tutto', 'The vuol dire il, lo, la, i, gli, le. Uno solo per tutti!', [['the door', 'la porta'], ['the keys', 'le chiavi']]) },
+    { id: 'frasi3', lv: 1, title: 'Aiuto!', sub: 'Frasi salva-vita', em: '🛟', tip: T('Dire di no', 'Per dire "non" si mette don\'t davanti al verbo.', [['I don\'t understand', 'non capisco'], ['I don\'t know', 'non lo so']]) },
+    { id: 'giorni', lv: 1, title: 'Giorni', sub: 'La settimana', em: '📅', tip: T('Giorni con la maiuscola', 'In inglese i giorni si scrivono sempre con la maiuscola. "Lunedì" si dice on Monday.', [['on Monday', 'lunedì'], ['See you on Friday', 'ci vediamo venerdì']]) },
+    { id: 'verbi', lv: 1, title: 'Azioni', sub: 'I primi verbi', em: '🏃‍♀️', tip: T('Mi piace e vorrei', 'I like = mi piace. I want = voglio. I would like = vorrei, più gentile.', [['I like coffee', 'mi piace il caffè'], ['I would like a tea', 'vorrei un tè']]) },
+    { id: 'viaggio', lv: 1, title: 'In vacanza', sub: 'Viaggi e SPA', em: '🏖️', tip: T('In vacanza', 'I am on holiday vuol dire "sono in vacanza".', [['I am on holiday', 'sono in vacanza'], ['a room for two', 'una camera per due']]) },
+    { id: 'frasi4', lv: 1, title: 'Amore', sub: 'Frasi del cuore', em: '💗', tip: T('Gli auguri', 'Per fare gli auguri: Happy + la festa.', [['Happy birthday!', 'buon compleanno!'], ['Happy new year!', 'buon anno!']]) },
+
+    { id: 'essere', lv: 2, title: 'Essere', sub: 'I am, you are, she is', em: '🪞', tip: T('Il verbo essere', 'I am, you are, he is, she is, we are, they are. Parlando si accorcia: I\'m, you\'re, she\'s.', [['I am tired', 'sono stanca'], ['she is happy', 'lei è felice'], ['they are here', 'loro sono qui']]) },
+    { id: 'avere', lv: 2, title: 'Avere', sub: 'I have, she has', em: '🎁', tip: T('Il verbo avere', 'I have, you have, we have. Ma con he e she: has. Per dire no: I don\'t have.', [['I have a dog', 'ho un cane'], ['she has a cat', 'lei ha un gatto'], ['I don\'t have time', 'non ho tempo']]) },
+    { id: 'ora', lv: 2, title: 'Che ore sono?', sub: 'Orari e momenti', em: '🕒', tip: T('Le ore', 'O\'clock per le ore precise: three o\'clock. Half past vuol dire "e mezza".', [['three o\'clock', 'le tre in punto'], ['half past seven', 'le sette e mezza']]) },
+    { id: 'ristorante', lv: 2, title: 'Al ristorante', sub: 'Ordinare e pagare', em: '🍽️', tip: T('Vorrei', 'I would like vuol dire "vorrei": è il modo gentile di ordinare. Si accorcia in I\'d like.', [['I would like the fish', 'vorrei il pesce'], ['I\'d like a salad', 'vorrei un\'insalata']]) },
+    { id: 'negozi', lv: 2, title: 'Shopping', sub: 'Negozi e prezzi', em: '🛍️', tip: T('Quanto costa?', 'How much is it? e How much does it cost? vogliono dire tutte e due "quanto costa?".', [['How much is it?', 'quanto costa?'], ['It is too expensive', 'è troppo caro']]) },
+    { id: 'strada', lv: 2, title: 'Chiedere la strada', sub: 'Destra, sinistra, dritto', em: '🗺️', tip: T('Destra e sinistra', 'Left = sinistra, right = destra, straight on = dritto. Turn left = gira a sinistra.', [['turn left', 'gira a sinistra'], ['turn right', 'gira a destra']]) },
+    { id: 'meteo', lv: 2, title: 'Che tempo fa?', sub: 'Il meteo', em: '🌦️', tip: T('Il tempo di adesso', 'It is sunny = c\'è il sole. It is raining = sta piovendo. La fine -ing dice che succede adesso.', [['It is sunny', 'c\'è il sole'], ['It is raining', 'sta piovendo']]) },
+    { id: 'passato', lv: 2, title: 'Ieri', sub: 'Il passato', em: '⏮️', tip: T('Il passato', 'Molti verbi aggiungono -ed: play diventa played. Alcuni cambiano: go → went, eat → ate, is → was. Per le domande si usa did.', [['I played', 'ho giocato'], ['we went', 'siamo andati'], ['Did you sleep well?', 'hai dormito bene?']]) },
+    { id: 'salute', lv: 2, title: 'Dal medico', sub: 'Salute e farmacia', em: '🩺', tip: T('Mi fa male', 'Per dire dove fa male: my + parte del corpo + hurts. My head hurts = mi fa male la testa.', [['My head hurts', 'mi fa male la testa'], ['I need a doctor', 'ho bisogno di un medico']]) },
+    { id: 'parlare', lv: 2, title: 'Due chiacchiere', sub: 'Conoscere qualcuno', em: '🗣️', tip: T('Di dove sei?', 'Where are you from? vuol dire "di dove sei?". Si risponde: I am from Italy.', [['Where are you from?', 'di dove sei?'], ['I am from Italy', 'sono italiana']]) },
   ];
 
   const items = [];
@@ -150,6 +169,113 @@
   p('frasi4', 'Good night', 'buona notte', 'gud nàit', '🌙', 'night = notte. Good = buono, come in goodbye.');
   p('frasi4', 'See you tomorrow', 'ci vediamo domani', 'sìi iù tumòrou', '👋', 'see = vedere, tomorrow = domani.');
 
-  root.COURSE = { units, items };
+  // ---------- Livello 2: in giro per il mondo ----------
+  p('essere', 'I am tired', 'sono stanca', 'ài em tàierd', '🥱', 'tired = stanco, stanca.');
+  p('essere', 'You are beautiful', 'sei bellissima', 'iù ar biùtiful', '🌹');
+  p('essere', 'He is my husband', 'lui è mio marito', 'hi is mài hàsband', '🤵', 'he = lui.');
+  p('essere', 'She is my daughter', 'lei è mia figlia', 'sci is mài dóoter', '👧', 'she = lei.');
+  p('essere', 'We are happy', 'siamo felici', 'uì ar hèpi', '🥰', 'we = noi.');
+  p('essere', 'They are at home', 'sono a casa', 'dhèi ar et hóum', '🏡', 'they = loro. at home = a casa.');
+
+  p('avere', 'I have two children', 'ho due figli', 'ài hèv tùu cìldren', '👧👦', 'children = figli, bambini.');
+  p('avere', 'She has a dog', 'lei ha un cane', 'sci hès e dòg', '🐶', 'Con he e she si usa has.');
+  p('avere', 'Do you have a pen?', 'hai una penna?', 'du iù hèv e pèn', '🖊️', 'Le domande iniziano con do.');
+  p('avere', 'I don\'t have time', 'non ho tempo', 'ài dóunt hèv tàim', '⏳');
+  p('avere', 'We have a big family', 'abbiamo una famiglia grande', 'uì hèv e big fèmili', '👨‍👩‍👧‍👦');
+
+  w('ora', 'time', 'tempo, ora', 'tàim', '⏰', 'What time is it? Che ore sono?');
+  w('ora', 'morning', 'mattina', 'mòrning', '🌅', 'Good morning = buongiorno.');
+  w('ora', 'afternoon', 'pomeriggio', 'aftenùun', '🌤️', 'after + noon: dopo mezzogiorno.');
+  w('ora', 'evening', 'sera', 'ìivning', '🌆', 'Good evening = buonasera.');
+  w('ora', 'tomorrow', 'domani', 'tumòrou', '🌄', 'See you tomorrow: ci vediamo domani.');
+  w('ora', 'yesterday', 'ieri', 'ièsterdei', '🗓️', 'yester-day: il giorno prima.');
+  p('ora', 'What time is it?', 'che ore sono?', 'uòt tàim is it', '🕰️');
+  p('ora', 'It is three o\'clock', 'sono le tre', 'it is thrìi oklòk', '🕒', 'o\'clock = in punto.');
+  p('ora', 'It is half past seven', 'sono le sette e mezza', 'it is hàf past sèven', '🕢', 'half past = e mezza.');
+  p('ora', 'See you at eight', 'ci vediamo alle otto', 'sìi iù et éit', '⌚');
+
+  w('ristorante', 'menu', 'menù', 'mèniu', '📜');
+  w('ristorante', 'fish', 'pesce', 'fisc', '🐟');
+  w('ristorante', 'meat', 'carne', 'mìit', '🥩', 'Meat e meet (incontrare) si dicono uguale!');
+  w('ristorante', 'chicken', 'pollo', 'cìken', '🍗', 'Attenta: kitchen è la cucina, chicken il pollo.');
+  w('ristorante', 'salad', 'insalata', 'sèlad', '🥗');
+  w('ristorante', 'dessert', 'dolce', 'disèrt', '🍰', 'Con una s sola, desert, è il deserto!');
+  w('ristorante', 'glass', 'bicchiere', 'glàs', '🥂');
+  w('ristorante', 'delicious', 'buonissimo', 'dilìsciös', '😋', 'Delicious come "delizioso".');
+  p('ristorante', 'A table for two, please', 'un tavolo per due, per favore', 'e téibol for tùu, plìis', '👫');
+  p('ristorante', 'Can I have the menu?', 'posso avere il menù?', 'ken ài hèv dhe mèniu', '🙋‍♀️');
+  p('ristorante', 'I would like the fish', 'vorrei il pesce', 'ài uùd làik dhe fisc', '🎣');
+  p('ristorante', 'Some water, please', 'dell\'acqua, per favore', 'sam uóter, plìis', '🚰');
+  p('ristorante', 'It was delicious', 'era buonissimo', 'it uòs dilìsciös', '🤤');
+
+  w('negozi', 'shop', 'negozio', 'sciòp', '🏪', 'Shopping: andare per negozi.');
+  w('negozi', 'money', 'soldi', 'màni', '💰');
+  w('negozi', 'price', 'prezzo', 'pràis', '🏷️');
+  w('negozi', 'size', 'taglia', 'sàis', '📐');
+  w('negozi', 'cheap', 'economico', 'cìip', '🪙');
+  w('negozi', 'expensive', 'caro', 'ikspènsiv', '💎');
+  w('negozi', 'card', 'carta (di credito)', 'kàard', '💳');
+  w('negozi', 'cash', 'contanti', 'kèsc', '💵', 'Cash come la cassa.');
+  p('negozi', 'How much does it cost?', 'quanto costa?', 'hàu mac das it kòst', '🤔');
+  p('negozi', 'Can I try it on?', 'posso provarlo?', 'ken ài trài it on', '👗', 'try on = provare un vestito.');
+  p('negozi', 'Do you have a smaller size?', 'avete una taglia più piccola?', 'du iù hèv e smòoler sàis', '🤏');
+  p('negozi', 'I\'ll take it', 'lo prendo', 'àil téik it', '🛍️');
+  p('negozi', 'Can I pay by card?', 'posso pagare con la carta?', 'ken ài pèi bai kàard', '🏧');
+
+  w('strada', 'left', 'sinistra', 'lèft', '⬅️');
+  w('strada', 'right', 'destra', 'ràit', '➡️');
+  w('strada', 'street', 'strada, via', 'strìit', '🛣️');
+  w('strada', 'station', 'stazione', 'stèiscion', '🚉');
+  w('strada', 'airport', 'aeroporto', 'èrport', '✈️', 'Air = aria, port = porto: il porto dell\'aria.');
+  w('strada', 'train', 'treno', 'trèin', '🚆');
+  w('strada', 'bus', 'autobus', 'bas', '🚌');
+  w('strada', 'ticket', 'biglietto', 'tìket', '🎫', 'Ticket come lo scontrino del ticket.');
+  p('strada', 'Where is the station?', 'dov\'è la stazione?', 'uèar is dhe stèiscion', '🧭');
+  p('strada', 'Turn left', 'gira a sinistra', 'tèrn lèft', '↩️');
+  p('strada', 'Go straight on', 'vai dritto', 'góu strèit on', '⬆️');
+  p('strada', 'Is it far?', 'è lontano?', 'is it fàar', '📍');
+  p('strada', 'A ticket to London, please', 'un biglietto per Londra, per favore', 'e tìket tu lànden, plìis', '🇬🇧');
+
+  w('meteo', 'weather', 'tempo (meteo)', 'uèdher', '🌦️');
+  w('meteo', 'rain', 'pioggia', 'rèin', '🌧️');
+  w('meteo', 'snow', 'neve', 'snóu', '❄️');
+  w('meteo', 'wind', 'vento', 'uìnd', '🌬️', 'Il windsurf si fa col vento.');
+  w('meteo', 'cloud', 'nuvola', 'klàud', '☁️', 'Il cloud del telefono: le foto sulla nuvola!');
+  w('meteo', 'hot', 'caldo', 'hòt', '🥵', 'Hot dog: il panino caldo.');
+  w('meteo', 'cold', 'freddo', 'kóuld', '🥶');
+  w('meteo', 'warm', 'tiepido', 'uòrm', '🧣');
+  p('meteo', 'What is the weather like?', 'che tempo fa?', 'uòt is dhe uèdher làik', '🌤️');
+  p('meteo', 'It is sunny today', 'oggi c\'è il sole', 'it is sàni tudéi', '😎');
+  p('meteo', 'It is raining', 'sta piovendo', 'it is rèining', '☔');
+  p('meteo', 'It is very cold', 'fa molto freddo', 'it is vèri kóuld', '⛄');
+
+  p('passato', 'I was at home', 'ero a casa', 'ài uòs et hóum', '🛋️', 'was = ero, era.');
+  p('passato', 'We went to the sea', 'siamo andati al mare', 'uì uènt tu dhe sìi', '🏝️', 'went è il passato di go.');
+  p('passato', 'I ate a pizza', 'ho mangiato una pizza', 'ài éit e pìtsa', '🍕', 'ate è il passato di eat.');
+  p('passato', 'It was beautiful', 'è stato bellissimo', 'it uòs biùtiful', '✨');
+  p('passato', 'I played with my daughter', 'ho giocato con mia figlia', 'ài plèid uìdh mài dóoter', '🧸', 'play + ed = played.');
+  p('passato', 'Did you sleep well?', 'hai dormito bene?', 'did iù slìip uèl', '🛌', 'did serve per le domande al passato.');
+  p('passato', 'I didn\'t understand', 'non ho capito', 'ài dìdent anderstènd', '😕');
+
+  w('salute', 'doctor', 'medico', 'dòktor', '👩‍⚕️');
+  w('salute', 'pharmacy', 'farmacia', 'fàrmasi', '🏥');
+  w('salute', 'medicine', 'medicina', 'mèdsin', '💊');
+  w('salute', 'head', 'testa', 'hèd', '🙆‍♀️');
+  w('salute', 'tooth', 'dente', 'tùuth', '🦷', 'Un dente: tooth. Tanti denti: teeth.');
+  w('salute', 'pain', 'dolore', 'pèin', '😣', 'Pain come "pena".');
+  p('salute', 'I don\'t feel well', 'non mi sento bene', 'ài dóunt fìil uèl', '🤒');
+  p('salute', 'My head hurts', 'mi fa male la testa', 'mài hèd hèrts', '🤕');
+  p('salute', 'I need a doctor', 'ho bisogno di un medico', 'ài nìid e dòktor', '🩺');
+  p('salute', 'Where is the pharmacy?', 'dov\'è la farmacia?', 'uèar is dhe fàrmasi', '⚕️');
+
+  p('parlare', 'Where are you from?', 'di dove sei?', 'uèar ar iù from', '🌍');
+  p('parlare', 'I am from Italy', 'sono italiana', 'ài em from ìtali', '🇮🇹');
+  p('parlare', 'I live in Italy', 'vivo in Italia', 'ài liv in ìtali', '🏘️');
+  p('parlare', 'Do you speak Italian?', 'parli italiano?', 'du iù spìik itàlian', '💬');
+  p('parlare', 'I speak a little English', 'parlo un po\' di inglese', 'ài spìik e lìtol ìnglisc', '🤏');
+  p('parlare', 'What do you do?', 'che lavoro fai?', 'uòt du iù dù', '💼', 'Letteralmente: cosa fai?');
+  p('parlare', 'Me too!', 'anch\'io!', 'mi tùu', '🙌');
+
+  root.COURSE = { levels, units, items };
   if (typeof module === 'object' && module.exports) module.exports = root.COURSE;
 })(typeof self !== 'undefined' ? self : globalThis);
